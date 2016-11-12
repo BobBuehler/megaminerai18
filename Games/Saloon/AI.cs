@@ -24,6 +24,7 @@ namespace Joueur.cs.Games.Saloon
         /// This is your AI's player. This AI class is not a player, but it should command this Player.
         /// </summary>
         public readonly Saloon.Player Player;
+        public Saloon.Player Opponent;
         #pragma warning restore 0169
         #pragma warning restore 0649
 
@@ -48,6 +49,8 @@ namespace Joueur.cs.Games.Saloon
         /// </remarks>
         public override void Start()
         {
+            this.Opponent = this.Game.Players.MinByValue(p => p == this.Player );
+    
             base.Start();
         }
 
@@ -87,14 +90,16 @@ namespace Joueur.cs.Games.Saloon
 
             Spawn();
 
+            var pianos = this.Game.Furnishings.Where(f => f.IsPiano && !f.IsDestroyed);
+
             foreach(var cowboy in this.Player.Cowboys.Where(c => !c.IsDead && !c.IsDrunk))
             {
-                var pianos = this.Game.Furnishings.Where(f => f.IsPiano && !f.IsDestroyed && !f.IsPlaying);
-                if (!pianos.Any())
+                var targetPianos = pianos.Where(f => !f.IsPlaying);
+                if (!targetPianos.Any())
                 {
                     return true;
                 }
-                var piano = pianos.MinByValue(p => p.ToPoint().ManhattanDistance(cowboy.ToPoint()));
+                var piano = targetPianos.MinByValue(p => p.ToPoint().ManhattanDistance(cowboy.ToPoint()));
                 
                 List<Tile> path = this.FindPath(cowboy.Tile, piano.Tile);
                 if (path.Count > 1)
