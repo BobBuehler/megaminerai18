@@ -37,7 +37,7 @@ namespace Joueur.cs.Games.Saloon
         /// <returns>string of you AI's name.</returns>
         public override string GetName()
         {
-            return "Saloon C# Player"; // REPLACE THIS WITH YOUR TEAM NAME!
+            return "Aimbot"; // REPLACE THIS WITH YOUR TEAM NAME!
         }
 
         /// <summary>
