@@ -13,6 +13,10 @@ namespace Joueur.cs.Games.Saloon
     /// </summary>
     class AI : BaseAI
     {
+        public static Game _Game;
+        public static Player _Player;
+        public static Player _OtherPlayer;
+
         #region Properties
         #pragma warning disable 0169 // the never assigned warnings between here are incorrect. We set it for you via reflection. So these will remove it from the Error List.
         #pragma warning disable 0649
@@ -52,6 +56,9 @@ namespace Joueur.cs.Games.Saloon
             this.Opponent = this.Game.Players.MinByValue(p => p == this.Player );
     
             base.Start();
+            AI._Game = this.Game;
+            AI._Player = this.Player;
+            AI._OtherPlayer = this.Game.Players.First(p => p.Id != this.Player.Id);
         }
 
         /// <summary>

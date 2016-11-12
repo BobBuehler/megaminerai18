@@ -16,4 +16,9 @@ static class SaloonExtensions
     {
         return furnishing.Tile.ToPoint();
     }
+
+    public static Tile ToTile(this Point point)
+    {
+        return AI._Game.GetTileAt(point.x, point.y);
+    }
 }
