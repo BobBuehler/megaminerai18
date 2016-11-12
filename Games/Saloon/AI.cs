@@ -87,36 +87,38 @@ namespace Joueur.cs.Games.Saloon
 
             Spawn();
 
-
             foreach(var cowboy in this.Player.Cowboys.Where(c => !c.IsDead && !c.IsDrunk))
             {
-                Console.WriteLine("Trying to use Cowboy #" + cowboy.Id);
-
                 var pianos = this.Game.Furnishings.Where(f => f.IsPiano && !f.IsDestroyed && !f.IsPlaying);
+                if (!pianos.Any())
+                {
+                    return true;
+                }
                 var piano = pianos.MinByValue(p => p.ToPoint().ManhattanDistance(cowboy.ToPoint()));
-
-                Console.WriteLine("Pathing to Piano #" + piano.Id);
+                
                 List<Tile> path = this.FindPath(cowboy.Tile, piano.Tile);
                 if (path.Count > 1)
                 {
-                    Console.WriteLine("2. Moving to Tile #" + path.First().Id);
                     cowboy.Move(path.First());
                 }
 
-                if (piano.ToPoint().ManhattanDistance(cowboy.ToPoint()) == 0)
+                if (piano.ToPoint().ManhattanDistance(cowboy.ToPoint()) == 1)
                 {
-                    Console.WriteLine("Playing Piano #" + piano.Id);
                     cowboy.Play(piano);
                 }
             }
             
-            Console.WriteLine("Ending my turn. " + stopwatch.ElapsedMilliseconds);
+            Console.WriteLine("{0} - {1}", this.Game.CurrentTurn, stopwatch.ElapsedMilliseconds);
 
             return true;
         }
 
         void Spawn()
         {
+            if (this.Player.YoungGun.CallInTile.Cowboy != null)
+            {
+                return;
+            }
             var jobPriority = new [] { "Bartender", "Sharpshooter", "Brawler" };
             foreach(var job in jobPriority)
             {
