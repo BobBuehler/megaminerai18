@@ -84,146 +84,48 @@ namespace Joueur.cs.Games.Saloon
         {
             var stopwatch = new Stopwatch();
             stopwatch.Start();
-            // This is "ShellAI", some basic code we've provided that does
-            // everything in the game for demo purposed, but poorly so you
-            // can get to optimizing or overwriting it ASAP
-            //
-            // ShellAI does a few things:
-            // 1. Tries to spawn a new Cowboy
-            // 2. Tries to move to a Piano
-            // 3. Tries to play a Piano
-            // 4. Tries to act
 
-            Console.WriteLine("Start of my turn: " + Game.CurrentTurn);
+            Spawn();
 
-            // Find the active cowboy to try to do things with
-            Cowboy activeCowboy = null;
-            foreach (Cowboy cowboy in this.Player.Cowboys)
+
+            foreach(var cowboy in this.Player.Cowboys.Where(c => !c.IsDead && !c.IsDrunk))
             {
-                if(!cowboy.IsDead)
+                Console.WriteLine("Trying to use Cowboy #" + cowboy.Id);
+
+                var pianos = this.Game.Furnishings.Where(f => f.IsPiano && !f.IsDestroyed && !f.IsPlaying);
+                var piano = pianos.MinByValue(p => p.ToPoint().ManhattanDistance(cowboy.ToPoint()));
+
+                Console.WriteLine("Pathing to Piano #" + piano.Id);
+                List<Tile> path = this.FindPath(cowboy.Tile, piano.Tile);
+                if (path.Count > 1)
                 {
-                    activeCowboy = cowboy;
-                    break;
-                }
-            }
-
-            // A random generator we use to do random silly things
-            Random random = new Random();
-
-            // 1. Try to spawn a cowboy.
-
-            // Randomly select a job.
-            string newJob = this.Game.Jobs.ElementAt(random.Next(0, this.Game.Jobs.Count));
-
-            // Count cowboys with selected job
-            int jobCount = 0;
-            foreach (Cowboy cowboy in this.Player.Cowboys)
-            {
-                if(!cowboy.IsDead && cowboy.Job == newJob)
-                {
-                    jobCount++;
-                }
-            }
-
-            // Call in the new cowboy with that job if there aren't too many
-            //   cowboys with that job already.
-            if (this.Player.YoungGun.CanCallIn && jobCount < this.Game.MaxCowboysPerJob)
-            {
-                Console.WriteLine("1. Calling in: " + newJob);
-                this.Player.YoungGun.CallIn(newJob);
-            }
-
-            // Now lets use him
-            if (activeCowboy != null)
-            {
-                // 2. Try to move to a piano.
-
-                // Find a piano.
-                Furnishing piano = null;
-                foreach (Furnishing furnishing in this.Game.Furnishings)
-                {
-                    if (furnishing.IsPiano && !furnishing.IsDestroyed)
-                    {
-                        piano = furnishing;
-                        break;
-                    }
+                    Console.WriteLine("2. Moving to Tile #" + path.First().Id);
+                    cowboy.Move(path.First());
                 }
 
-                // There will always be pianos or the game will end. No need to check for existence.
-                // Attempt to move toward the piano by finding a path.
-                if (activeCowboy.CanMove && !activeCowboy.IsDead)
+                if (piano.ToPoint().ManhattanDistance(cowboy.ToPoint()) == 0)
                 {
-                    Console.WriteLine("Trying to use Cowboy #" + activeCowboy.Id);
-
-                    // Find a path of tiles to the piano from our active cowboy's tile
-                    List<Tile> path = this.FindPath(activeCowboy.Tile, piano.Tile);
-
-                    // if there is a path, move along it
-                    //      Count of 0 means no path could be found to the tile
-                    //      Count of 1 means the piano is adjacent, and we can't move onto the same tile as the piano
-                    if (path.Count > 1)
-                    {
-                        Console.WriteLine("2. Moving to Tile #" + path.First().Id);
-                        activeCowboy.Move(path.First());
-                    }
-                }
-
-                // 3. Try to play a nearby piano.
-                if (!activeCowboy.IsDead && activeCowboy.TurnsBusy == 0)
-                {
-                    List<Tile> neighbors = activeCowboy.Tile.GetNeighbors();
-                    foreach (Tile tile in neighbors)
-                    {
-                        if (tile.Furnishing != null && tile.Furnishing.IsPiano)
-                        {
-                            Console.WriteLine("3. Playing piano (Furnishing) #" + tile.Furnishing.Id);
-                            activeCowboy.Play(tile.Furnishing);
-                            break;
-                        }
-                    }
-                }
-
-                // 4. Try to act with active cowboy
-                if (!activeCowboy.IsDead && activeCowboy.TurnsBusy == 0)
-                {
-                    // Get a random neighboring tile.
-                    var neighbors = activeCowboy.Tile.GetNeighbors();
-                    Tile neighbor = neighbors.ElementAt(random.Next(0, neighbors.Count));
-
-                    // Based on job, act accordingly.
-                    if (activeCowboy.Job == "Bartender")
-                    {
-                        // Bartenders dispense brews freely, but they still manage to get their due.
-                        string direction = Tile.Directions[random.Next(0, Tile.Directions.Length)];
-                        Console.WriteLine("4. Bartender acting on Tile #" + neighbor.Id + " with drunkDirection: " + direction);
-                        activeCowboy.Act(neighbor, direction);
-                    }
-                    else if (activeCowboy.Job == "Brawler")
-                    {
-                        // Brawlers' brains are so pickled, they hardly know friend from foe.
-                        // Probably don't ask them act on your behalf.
-                        Console.WriteLine("4. Brawlers cannot act");
-                    }
-                    else if (activeCowboy.Job == "Sharpshooter")
-                    {
-                        // Sharpshooters aren't as quick as they used to be, and all that ruckus around them
-                        // requires them to focus when taking aim.
-                        if (activeCowboy.Focus > 0)
-                        {
-                            Console.WriteLine("4. Sharpshooter acting on Tile #" + neighbor.Id);
-                            activeCowboy.Act(neighbor);
-                        }
-                        else
-                        {
-                            Console.WriteLine("4. Sharpshooter doesn't have enough focus. (focus == " + activeCowboy.Focus + ")");
-                        }
-                    }
+                    Console.WriteLine("Playing Piano #" + piano.Id);
+                    cowboy.Play(piano);
                 }
             }
             
             Console.WriteLine("Ending my turn. " + stopwatch.ElapsedMilliseconds);
 
             return true;
+        }
+
+        void Spawn()
+        {
+            var jobPriority = new [] { "Bartender", "Sharpshooter", "Brawler" };
+            foreach(var job in jobPriority)
+            {
+                if (this.Player.Cowboys.Count(c => c.Job == job) < 2)
+                {
+                    this.Player.YoungGun.CallIn(job);
+                    break;
+                }
+            }
         }
 
         /// <summary>
