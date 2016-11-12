@@ -1,0 +1,3 @@
+#!/bin/bash
+
+./bin/Release/Joueur.cs.exe "$@"
