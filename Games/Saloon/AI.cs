@@ -2,9 +2,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
-
 
 namespace Joueur.cs.Games.Saloon
 {
@@ -82,6 +82,8 @@ namespace Joueur.cs.Games.Saloon
         /// <returns>Represents if you want to end your turn. True means end your turn, False means to keep your turn going and re-call this function.</returns>
         public bool RunTurn()
         {
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
             // This is "ShellAI", some basic code we've provided that does
             // everything in the game for demo purposed, but poorly so you
             // can get to optimizing or overwriting it ASAP
@@ -218,8 +220,8 @@ namespace Joueur.cs.Games.Saloon
                     }
                 }
             }
-
-            Console.WriteLine("Ending my turn.");
+            
+            Console.WriteLine("Ending my turn. " + stopwatch.ElapsedMilliseconds);
 
             return true;
         }
