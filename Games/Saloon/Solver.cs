@@ -514,4 +514,21 @@ static class Solver
             return Turn + Point.GetHashCode();
         }
     }
+
+    public static void MoveIn()
+    {
+        var cowboys = AI._Player.Cowboys.Where(c => !c.IsDead && !c.IsDrunk && c.CanMove)
+            .Select(c => c.ToPoint())
+            .ToHashSet();
+        var inDir = AI._Player.YoungGun.Tile.Y == 0 ? "South" : "North";
+
+        foreach (var cowboy in cowboys)
+        {
+            var next = NextPoint(cowboy, inDir);
+            if (IsWalkable(next))
+            {
+                cowboy.ToTile().Cowboy.Move(next.ToTile());
+            }
+        }
+    }
 }

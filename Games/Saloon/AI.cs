@@ -103,6 +103,10 @@ namespace Joueur.cs.Games.Saloon
 
             Spawn();
             
+            if (this.Game.CurrentTurn <= 7)
+            {
+                Solver.MoveIn();
+            }
             Solver.GreedySwarmAndPlay();
             MobilizeGreedyBartenders();
             CauseTrouble();
