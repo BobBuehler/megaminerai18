@@ -171,6 +171,10 @@ static class Solver
     {
         var autoStates = AutoStates(AI._Game.MaxTurns - AI._Game.CurrentTurn + 1).ToDictionary(s => s.Turn);
         Func<PointAtTurn, int> h = pat => goals.Min(g => g.ManhattanDistance(pat.Point));
+        if (!goals.Any())
+        {
+            h = pat => 0;
+        }
         var goalSet = goals.ToHashSet();
         Func<Point, int, bool> goodNeighbor = (p, turn) =>
         {
