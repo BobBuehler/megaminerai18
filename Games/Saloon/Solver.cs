@@ -15,7 +15,7 @@ static class Solver
             var pianos = AI._Game.Furnishings.Where(f => f.IsPiano && !f.IsDestroyed && !f.IsPlaying && !assignedPianos.Contains(f.ToPoint()))
                 .Select(t => t.ToPoint())
                 .ToHashSet();
-            var cowboys = AI._Player.Cowboys.Where(c => !c.IsDead && !c.IsDrunk && c.CanMove && c.TurnsBusy == 0)
+            var cowboys = AI._Player.Cowboys.Where(c => !c.IsDead && !c.IsDrunk && c.CanMove && !movingCowboys.Contains(c.ToPoint()))
                 .Select(c => c.ToPoint())
                 .ToHashSet();
 
@@ -24,10 +24,10 @@ static class Solver
                 break;
             }
 
-            var path = PathSafely(cowboys, pianos, p => movingCowboys.Contains(p), p => assignedGoals.Contains(p)).ToList();
-            
-            if (path.Count > 0)
+            var paths = cowboys.ToDictionary(c => c, c => PathSafely(new[] { c }, pianos)).Where(kvp => kvp.Value.Count() > 0);
+            if (paths.Any())
             {
+                var path = paths.MinByValue(kvp => Math.Max((kvp.Value.Count() - 2) * 2, kvp.Key.ToTile().Cowboy.TurnsBusy)).Value.ToList();
                 var cowboy = path.First().Cowboy;
                 MoveAndPlay(path);
                 movingCowboys.Add(cowboy.ToPoint());
@@ -44,12 +44,12 @@ static class Solver
     public static void MoveAndPlay(IEnumerable<Tile> path)
     {
         var cowboy = path.First().Cowboy;
-        if (path.Count() > 2)
+        if (cowboy.CanMove && path.Count() > 2)
         {
             Console.WriteLine("Move [{0}]", String.Join(",", path.Select(t => t.Stringify()).ToArray()));
             cowboy.Move(path.ElementAt(1));
         }
-        if (path.Count() <= 3)
+        if (cowboy.TurnsBusy == 0 && path.Count() <= 3)
         {
             Console.WriteLine("Play [{0}]", String.Join(",", path.Select(t => t.Stringify()).ToArray()));
             cowboy.Play(path.Last().Furnishing);
