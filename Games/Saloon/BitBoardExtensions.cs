@@ -80,4 +80,16 @@ static class BitBoardExtensions
         }
         return count;
     }
+
+    public static IEnumerable<Point> PointsInRange(this Point source, int range)
+    {
+        for (int dy = -range; dy <= range; ++dy)
+        {
+            int xRange = range - Math.Abs(dy);
+            for (int dx = -xRange; dx <= xRange; ++dx)
+            {
+                yield return new Point(source.x + dx, source.y + dy);
+            }
+        }
+    }
 }
