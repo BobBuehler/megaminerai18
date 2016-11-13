@@ -17,6 +17,7 @@ namespace Joueur.cs.Games.Saloon
         public static Player _Player;
         public static Player _OtherPlayer;
         public static Random _Random;
+        public static HashSet<Point> _IsAPlayer;
 
         #region Properties
         #pragma warning disable 0169 // the never assigned warnings between here are incorrect. We set it for you via reflection. So these will remove it from the Error List.
@@ -98,13 +99,19 @@ namespace Joueur.cs.Games.Saloon
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
+            AI._IsAPlayer = new HashSet<Point>();
+
             Spawn();
             Solver.GreedySwarmAndPlay();
             CauseTrouble();
             Spawn();
             this.Player.Cowboys.ForEach(c => Solver.BeSafe(c));
 
-            Console.WriteLine("Turn #{0} in {1}ms", this.Game.CurrentTurn, stopwatch.ElapsedMilliseconds);
+            Console.WriteLine("Turn #{0}. Score={1}-{2}. Time={3}ms.",
+                this.Game.CurrentTurn,
+                this.Player.Score,
+                this.Opponent.Score,
+                stopwatch.ElapsedMilliseconds);
 
             return true;
         }
