@@ -115,7 +115,7 @@ namespace Joueur.cs.Games.Saloon
             var spawnTile = youngGun.CallInTile;
             
             var cowboys = this.Player.Cowboys;
-            var opponentCowboys = this._OtherPlayer.Cowboys;
+            var opponentCowboys = this.Opponent.Cowboys;
             
             if (spawnTile.Cowboy != null && spawnTile.Cowboy.Owner == this.Player)
             {
@@ -125,8 +125,8 @@ namespace Joueur.cs.Games.Saloon
             if (spawnTile.Furnishing != null && spawnTile.Furnishing.IsPiano)
             {
                 // Should we spawn on piano?
-                var friendlyPath = Solver.PathSafely(new [] { spawnTile.ToPoint() }, cowboys);
-                var opponentPath = Solver.PathSafely(new [] { spawnTile.ToPoint() }, opponentCowboys);
+                var friendlyPath = Solver.PathSafely(new [] { spawnTile.ToPoint() }, cowboys.Select(c => c.ToPoint()));
+                var opponentPath = Solver.PathSafely(new [] { spawnTile.ToPoint() }, opponentCowboys.Select(c => c.ToPoint()));
                 // Maybe spawn if we can play on it
                 if (friendlyPath.Count() <= 3)
                 {
@@ -135,7 +135,7 @@ namespace Joueur.cs.Games.Saloon
                         return;
                     }
                 }
-                else if (opponentPath.Count > 3)
+                else if (opponentPath.Count() > 3)
                 {
                     return;
                 }
