@@ -65,6 +65,32 @@ static class Solver
         }
     }
 
+    public static void BeSafe(Cowboy cowboy)
+    {
+        if (!cowboy.CanMove)
+        {
+            return;
+        }
+
+        var autoStates = AutoStates(2).ToList();
+        var point = cowboy.ToPoint();
+        if (IsSafe(point, autoStates[0]) && IsSafe(point, autoStates[1]))
+        {
+            return;
+        }
+
+        var walkableAndSafe = Neighboors(point)
+            .Where(p => Solver.IsWalkable(p) && IsSafe(p, autoStates[0]) && IsSafe(p, autoStates[1]))
+            .ToList();
+        if (walkableAndSafe.Any())
+        {
+            var safeTile = walkableAndSafe.First().ToTile();
+            Console.WriteLine("Be safe: [{0},{1}]", cowboy.Tile.Stringify(), safeTile.Stringify());
+            cowboy.Move(safeTile);
+            cowboy.LogScared();
+        }
+    }
+
     public static IEnumerable<Tile> PathSafely(IEnumerable<Point> starts, Func<Point, bool> isGoal)
     {
         var autoStates = AutoStates(AI._Game.MaxTurns - AI._Game.CurrentTurn + 1).ToDictionary(s => s.Turn);
@@ -109,9 +135,15 @@ static class Solver
 
     public static bool IsSafe(Point point, AutoState state)
     {
-        var isSafe = !state.OurCallIn.Equals(point) && !state.TheirCallIn.Equals(point) && !state.Bottles.ContainsKey(point);
-        // Console.WriteLine("IsSafe={0}: {1}, {2}", isSafe, point, state);
-        return isSafe;
+        if (state.Bottles.ContainsKey(point))
+        {
+            return false;
+        }
+        if (!state.IsOurTurn && point.Equals(state.TheirYoungGun))
+        {
+            return false;
+        }
+        return true;
     }
 
     public static IEnumerable<Point> Neighboors(Point point)
@@ -279,6 +311,7 @@ static class Solver
             IsOurTurn = isOurTurn;
             OurYoungGun = ourYoungGun;
             TheirYoungGun = theirYoungGun;
+            Bottles = new Dictionary<Point, Bottle>();
         }
 
         public override string ToString()
@@ -316,9 +349,16 @@ static class Solver
             state.IsOurTurn ? state.OurYoungGun : NextYoungGunPoint(state.OurYoungGun),
             state.IsOurTurn ? NextYoungGunPoint(state.TheirYoungGun) : state.TheirYoungGun
         );
-        nextState.Bottles = state.Bottles
+        state.Bottles
             .Where(kvp => IsBottlePathable(kvp.Key))
-            .ToDictionary(kvp => NextPoint(kvp.Key, kvp.Value.Direction), kvp => kvp.Value);
+            .ForEach(kvp =>
+            {
+                var nextPoint = NextPoint(kvp.Key, kvp.Value.Direction);
+                if (!nextState.Bottles.Remove(nextPoint))
+                {
+                    nextState.Bottles.Add(NextPoint(kvp.Key, kvp.Value.Direction), kvp.Value);
+                }
+            });
 
         return nextState;
     }
