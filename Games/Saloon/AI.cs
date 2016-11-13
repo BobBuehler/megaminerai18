@@ -244,7 +244,17 @@ namespace Joueur.cs.Games.Saloon
             if (filteredActions.Any())
             {
                 var action = filteredActions.ElementAt(0);
-                bartender.Act(action.Item2, action.Item3);
+                var drunkDirection = action.Item3;
+                var cardTrails = Solver.WalkableExpansion( action.Item1, 4 );
+                if (cardTrails.Any())
+                {
+                    var trail = cardTrails.MaxByValue(t => t.Count());
+                    if (trail.Any())
+                    {
+                    drunkDirection = Solver.RelDirection(action.Item2.ToPoint(), trail.First());
+                    }
+                }
+                bartender.Act(action.Item2, drunkDirection);
             }
         }
         
