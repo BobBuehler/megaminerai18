@@ -49,6 +49,7 @@ static class Solver
     {
         if (playPath.Count == 2 && playPath[0].HasHazard)
         {
+            Console.WriteLine("Maybe Corner: " + playPath[0].Stringify());
             var cowboy = playPath[0].Cowboy;
             var piano = playPath[1].Furnishing;
             //var autoStates = AutoStates(3).ToList();
@@ -60,9 +61,8 @@ static class Solver
                 return false;
             }
             var newPath = PathSafely(new[] { cowboy.ToPoint() }, newPositions);
-            if (newPath.Count() == 2)
+            if (newPath.Count() == 3)
             {
-                Console.WriteLine("YEP");
                 Console.WriteLine("Corner Case: {0} -> {1}", newPath.ElementAt(0).Stringify(), newPath.ElementAt(1).Stringify());
                 cowboy.Play(piano);
                 cowboy.Move(newPath.ElementAt(1));
@@ -89,7 +89,7 @@ static class Solver
 
     public static void BeSafe(Cowboy cowboy)
     {
-        if (!cowboy.CanMove)
+        if (!cowboy.CanMove || cowboy.IsDrunk || cowboy.IsDead)
         {
             return;
         }
