@@ -96,7 +96,15 @@ namespace Joueur.cs.Games.Saloon
             stopwatch.Start();
 
             Spawn();
-            Solver.SwarmPianos();
+            if(this.Game.CurrentTurn >= 80)
+            {
+                CauseTrouble();
+            }
+            else
+            {
+                Solver.SwarmPianos();  
+            }
+            
             Spawn();
             
             Console.WriteLine("{0} - {1}", this.Game.CurrentTurn, stopwatch.ElapsedMilliseconds);
@@ -155,6 +163,29 @@ namespace Joueur.cs.Games.Saloon
             }
         }
 
+
+void CauseTrouble()
+        {
+            var cowboys = this.Player.Cowboys.Where(c => (!c.IsDead && !c.IsDrunk && c.CanMove && c.TurnsBusy == 0) && (c.Job == "Brawler")).ToList();
+  
+            var targets = AI._OtherPlayer.Cowboys.Select(t => t.ToPoint()).ToHashSet();
+            
+            if(cowboys.Count() == 0 || targets.Count() == 0)
+            {
+                return;
+            }
+            
+            foreach(var brawler in cowboys)
+            {
+                var path = Solver.PathSafely(new [] { brawler.ToPoint() }, r => targets.Contains(r));
+                
+                if(path.Count() > 2)
+                {
+                    brawler.Move(path.ElementAt(1));  
+                }
+            }
+        }
+        
         #endregion
     }
 }
