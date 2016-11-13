@@ -103,6 +103,7 @@ namespace Joueur.cs.Games.Saloon
 
             Spawn();
             Solver.GreedySwarmAndPlay();
+            GreedyBartenders();
             CauseTrouble();
             Spawn();
             this.Player.Cowboys.ForEach(c => Solver.BeSafe(c));
@@ -148,13 +149,47 @@ namespace Joueur.cs.Games.Saloon
                 }
             }
 
-            var jobPriority = new [] { "Bartender", "Sharpshooter", "Brawler" };
+            var jobPriority = new [] { "Sharpshooter", "Bartender", "Brawler" };
             foreach(var job in jobPriority)
             {
                 if (cowboys.Count(c => c.Job == job) < 2)
                 {
                     youngGun.CallIn(job);
                     break;
+                }
+            }
+        }
+        
+        void GreedyBartenders()
+        {
+            var bartenders = this.Player.Cowboys.Where(c => c.CanMove && !c.IsDead && !c.IsDrunk && c.TurnsBusy == 0 && c.Job == "Bartender");
+            var opponentCowboys = this.Opponent.Cowboys.Where(c => !c.IsDead).Select(c => c.ToPoint()).ToHashSet();
+            foreach(var bartender in bartenders)
+            {
+                this.GreedyBartender(bartender, opponentCowboys);
+            }
+        }
+        
+        void GreedyBartender(Saloon.Cowboy bartender, IEnumerable<Point> opponentCowboys)
+        {
+            var startPoint = bartender.ToPoint();
+            foreach (var direction in new string[] {"North", "East", "South", "West"})
+            {
+                Func<Point, Point> nextPoint = p => Solver.NextPoint(p, direction);
+                var stepPoint = nextPoint(startPoint);
+                
+                while(stepPoint.ManhattanDistance(startPoint) <= 2)
+                {
+                    if (opponentCowboys.Contains(stepPoint))
+                    {
+                        bartender.Act(nextPoint(startPoint).ToTile(), direction);
+                        return;
+                    }
+                    if (!Solver.IsBottlePathable(stepPoint))
+                    {
+                        break;
+                    }
+                    stepPoint = nextPoint(stepPoint);
                 }
             }
         }
@@ -241,7 +276,7 @@ namespace Joueur.cs.Games.Saloon
         void CauseTrouble()
         {
             var cowboys = this.Player.Cowboys.Where(c => (!c.IsDead && !c.IsDrunk && c.CanMove && c.TurnsBusy == 0) && (c.Job == "Brawler")).ToList();
-  
+
             var targets = AI._OtherPlayer.Cowboys.Select(t => t.ToPoint()).ToHashSet();
             
             if(cowboys.Count() == 0 || targets.Count() == 0)
