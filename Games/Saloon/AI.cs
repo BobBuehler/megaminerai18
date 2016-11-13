@@ -245,8 +245,18 @@ namespace Joueur.cs.Games.Saloon
                     .ThenBy(a => opponentCowboys[a.Item1].IsDrunk)
                     .ThenBy(a => a.Item1.ManhattanDistance(startPoint));
 
-                var action = filteredActions.First();
-                bartender.Act(action.Item2, action.Item3);
+                var action = filteredActions.ElementAt(0);
+                var drunkDirection = action.Item3;
+                var cardTrails = Solver.WalkableExpansion( action.Item1, 4 );
+                if (cardTrails.Any())
+                {
+                    var trail = cardTrails.MaxByValue(t => t.Count());
+                    if (trail.Any())
+                    {
+                    drunkDirection = Solver.RelDirection(action.Item2.ToPoint(), trail.First());
+                    }
+                }
+                bartender.Act(action.Item2, drunkDirection);
             }
         }
         
