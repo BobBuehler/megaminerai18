@@ -92,6 +92,7 @@ namespace Joueur.cs.Games.Saloon
         /// <returns>Represents if you want to end your turn. True means end your turn, False means to keep your turn going and re-call this function.</returns>
         public bool RunTurn()
         {
+            Console.WriteLine("Turn #{0}", this.Game.CurrentTurn);
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
@@ -99,8 +100,8 @@ namespace Joueur.cs.Games.Saloon
             Solver.SwarmPianos();
             Spawn();
             this.Player.Cowboys.ForEach(c => Solver.BeSafe(c));
-            
-            Console.WriteLine("{0} - {1}", this.Game.CurrentTurn, stopwatch.ElapsedMilliseconds);
+
+            Console.WriteLine("Turn #{0} in {1}ms", this.Game.CurrentTurn, stopwatch.ElapsedMilliseconds);
 
             return true;
         }
