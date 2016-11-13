@@ -36,6 +36,7 @@ static class Solver
                 movingCowboys.Add(cowboy.ToPoint());
                 assignedGoals.Add(path[path.Count - 2].ToPoint());
                 assignedPianos.Add(path[path.Count - 1].ToPoint());
+                AI._IsAPlayer.Add(cowboy.ToPoint());
             }
             else
             {
@@ -84,7 +85,6 @@ static class Solver
             Console.WriteLine("Play [{0}]", String.Join(",", path.Select(t => t.Stringify()).ToArray()));
             cowboy.Play(path.Last().Furnishing);
         }
-        AI._IsAPlayer.Add(cowboy.ToPoint());
     }
 
     public static void BeSafe(Cowboy cowboy)
