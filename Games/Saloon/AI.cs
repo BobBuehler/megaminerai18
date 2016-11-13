@@ -96,29 +96,35 @@ namespace Joueur.cs.Games.Saloon
         /// <returns>Represents if you want to end your turn. True means end your turn, False means to keep your turn going and re-call this function.</returns>
         public bool RunTurn()
         {
-            Console.WriteLine("Turn #{0}", this.Game.CurrentTurn);
-            var stopwatch = new Stopwatch();
-            stopwatch.Start();
-            
-            AI._IsAPlayer = new HashSet<Point>();
-            AI._Cowboys = this.Player.Cowboys;
+            try
+            {
+                Console.WriteLine("Turn #{0}", this.Game.CurrentTurn);
+                var stopwatch = new Stopwatch();
+                stopwatch.Start();
 
-            Spawn();
-            
-            Solver.GreedySwarmAndPlay();
-            MobilizeGreedyBartenders();
-            CauseTrouble();
-            SharpshooterAttack();
+                AI._IsAPlayer = new HashSet<Point>();
+                AI._Cowboys = this.Player.Cowboys;
 
-            Spawn();
-            AI._Cowboys.ForEach(c => Solver.BeSafe(c));
+                Spawn();
 
-            Console.WriteLine("Turn #{0}. Score={1}-{2}. Time={3}ms.",
-                this.Game.CurrentTurn,
-                this.Player.Score,
-                this.Opponent.Score,
-                stopwatch.ElapsedMilliseconds);
+                Solver.GreedySwarmAndPlay();
+                MobilizeGreedyBartenders();
+                CauseTrouble();
+                SharpshooterAttack();
 
+                Spawn();
+                AI._Cowboys.ForEach(c => Solver.BeSafe(c));
+
+                Console.WriteLine("Turn #{0}. Score={1}-{2}. Time={3}ms.",
+                    this.Game.CurrentTurn,
+                    this.Player.Score,
+                    this.Opponent.Score,
+                    stopwatch.ElapsedMilliseconds);
+            }
+            catch
+            {
+                Console.WriteLine("Be Exceptional!");
+            }
             return true;
         }
 
