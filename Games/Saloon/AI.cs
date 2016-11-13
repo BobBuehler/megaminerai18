@@ -102,7 +102,9 @@ namespace Joueur.cs.Games.Saloon
             AI._IsAPlayer = new HashSet<Point>();
 
             Spawn();
+            
             Solver.GreedySwarmAndPlay();
+            GreedyBartenders();
             CauseTrouble();
             SharpshooterAttack();
 
@@ -296,7 +298,7 @@ namespace Joueur.cs.Games.Saloon
         void SharpshooterAttack()
         {
             var cowboys = this.Player.Cowboys.Where(c => (!c.IsDead && !c.IsDrunk && c.CanMove && c.TurnsBusy == 0) && (c.Job == "Sharpshooter")).ToList();
-            var targets = AI._OtherPlayer.Cowboys.Select(t => t.ToPoint());
+            var targets = AI._OtherPlayer.Cowboys.Where(c => !c.IsDead).Select(t => t.ToPoint());
             var targetsNearPianos = targets.Where(t => Solver.Neighboors(t).Select(n => n.ToTile()).Any(n => n.Furnishing != null && n.Furnishing.IsPiano));
 
             if(cowboys.Count() == 0 || !targetsNearPianos.Any())
