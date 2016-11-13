@@ -435,6 +435,22 @@ static class Solver
 
         return nextState;
     }
+    
+    public static IEnumerable<Point> CardinalExpansion(Point focus, int maxLength)
+    {
+        foreach (var direction in new string[] {"North", "East", "South", "West"})
+        {
+            var counter = 0;
+            var nextPoint = NextPoint(focus, direction);
+            while (counter < maxLength && !nextPoint.ToTile().IsBalcony)
+            {
+                yield return nextPoint;
+                
+                counter++;
+                nextPoint = NextPoint(nextPoint, direction);
+            }
+        }
+    }
 
     public class PointAtTurn
     {
