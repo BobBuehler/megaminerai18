@@ -432,6 +432,7 @@ static class Solver
             IsOurTurn = isOurTurn;
             OurYoungGun = ourYoungGun;
             TheirYoungGun = theirYoungGun;
+            Bottles = new Dictionary<Point, Bottle>();
         }
 
         public override string ToString()
@@ -469,9 +470,16 @@ static class Solver
             state.IsOurTurn ? state.OurYoungGun : NextYoungGunPoint(state.OurYoungGun),
             state.IsOurTurn ? NextYoungGunPoint(state.TheirYoungGun) : state.TheirYoungGun
         );
-        nextState.Bottles = state.Bottles
+        state.Bottles
             .Where(kvp => IsBottlePathable(kvp.Key))
-            .ToDictionary(kvp => NextPoint(kvp.Key, kvp.Value.Direction), kvp => kvp.Value);
+            .ForEach(kvp =>
+            {
+                var nextPoint = NextPoint(kvp.Key, kvp.Value.Direction);
+                if (!nextState.Bottles.Remove(nextPoint))
+                {
+                    nextState.Bottles.Add(NextPoint(kvp.Key, kvp.Value.Direction), kvp.Value);
+                }
+            });
 
         return nextState;
     }
