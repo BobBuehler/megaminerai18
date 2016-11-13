@@ -166,6 +166,84 @@ namespace Joueur.cs.Games.Saloon
                 }
             }
         }
+        
+        void BartenderMadness()
+        {
+            var youngGun = this.Player.YoungGun;
+            var spawnTile = youngGun.CallInTile;
+            var spawnPoint = spawnTile.ToPoint();
+            var nextSpawnPoint = Solver.AutoStates(3).Last().OurCallIn;
+            var cowboys = this.Player.Cowboys.Where(c => !c.IsDead);
+            var bartenders = cowboys.Where(c => c.Job == "Bartender");
+            var moved = false;
+            
+            if (bartenders.Count() == 0)
+            {
+                youngGun.CallIn("Bartender");
+            }
+            else if (bartenders.Count() == 1)
+            {
+                var bartender = bartenders.First();
+                
+                Console.WriteLine("Throw Bottle");
+                if (nextSpawnPoint.y == 1 && nextSpawnPoint.x != 20)
+                {
+                    Console.WriteLine("South");
+                    bartender.Act(bartender.Tile.TileSouth, "North");
+                }
+                else if (nextSpawnPoint.x == 20 && nextSpawnPoint.y != 10)
+                {
+                    Console.WriteLine("West");
+                    bartender.Act(bartender.Tile.TileWest, "East");
+                }
+                else if (nextSpawnPoint.y == 10 && nextSpawnPoint.x != 1)
+                {
+                    Console.WriteLine("North");
+                    bartender.Act(bartender.Tile.TileNorth, "South");
+                } else
+                {
+                    Console.WriteLine("East");
+                    bartender.Act(bartender.Tile.TileEast, "West");
+                }
+                
+                Console.WriteLine("Move");
+                if ( !bartender.ToPoint().Equals(spawnPoint) && Solver.IsWalkable(spawnPoint) )
+                {
+                    bartender.Move(spawnPoint.ToTile());
+                    moved = true;
+                }
+                
+                Console.WriteLine("Spawn");
+                if ( moved )
+                {
+                    if (!Solver.IsWalkable(nextSpawnPoint))
+                    {
+                        Console.WriteLine("Spawn Brawler");
+                        youngGun.CallIn("Brawler");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Spawn Move Bartender");
+                        youngGun.CallIn("Bartender");
+                    }
+                }
+                else
+                {
+                    // Not Moving
+                    if (!Solver.IsWalkable(nextSpawnPoint) && !spawnPoint.Equals(nextSpawnPoint))
+                    {
+                        Console.WriteLine("Spawn Sharpshooter");
+                        youngGun.CallIn("Sharpshooter");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Spawn NoMove Bartender");
+                        youngGun.CallIn("Bartender");
+                    }
+                }
+                Console.WriteLine("End Bar Fest");
+            }
+        }
 
 
 void CauseTrouble()
