@@ -64,7 +64,7 @@ static class Solver
             return;
         }
 
-        var autoStates = AutoStates(2).ToList();
+        var autoStates = AutoStates(3).ToList();
         Func<Point, bool> isGood = p =>
         {
             if (!AI._IsAPlayer.Contains(cowboy.ToPoint()))
@@ -78,7 +78,7 @@ static class Solver
                     return false;
                 }
             }
-            return IsSafe(p, autoStates[0]) && IsSafe(p, autoStates[1]);
+            return IsSafe(p, autoStates[0]) && IsSafe(p, autoStates[1]) && IsSafe(p, autoStates[2]);
         };
 
         var point = cowboy.ToPoint();
