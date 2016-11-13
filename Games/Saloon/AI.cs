@@ -98,6 +98,7 @@ namespace Joueur.cs.Games.Saloon
             Spawn();
             Solver.SwarmPianos();
             Spawn();
+            this.Player.Cowboys.ForEach(c => Solver.BeSafe(c));
             
             Console.WriteLine("{0} - {1}", this.Game.CurrentTurn, stopwatch.ElapsedMilliseconds);
 
