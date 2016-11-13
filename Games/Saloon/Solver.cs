@@ -5,54 +5,11 @@ using System.Linq;
 
 static class Solver
 {
-    public static void SwarmPianos()
-    {
-        while (true)
-        {
-            var pianos = AI._Game.Furnishings.Where(f => f.IsPiano && !f.IsDestroyed && !f.IsPlaying)
-                .Select(t => t.ToPoint())
-                .ToHashSet();
-            var cowboys = AI._Player.Cowboys.Where(c => !c.IsDead && !c.IsDrunk && c.CanMove && c.TurnsBusy == 0)
-                .Select(c => c.ToPoint())
-                .ToHashSet();
-
-            if (pianos.Count == 0 || cowboys.Count == 0)
-            {
-                break;
-            }
-
-            var nth = Math.Min(pianos.Count, cowboys.Count);
-
-            var paths = new List<IEnumerable<Tile>>(nth);
-            
-            for (int i = 0; i < nth; i++)
-            {
-                var shortPath = PathSafely(cowboys, pianos);
-                if (shortPath.Count() == 0)
-                {
-                    break;
-                }
-                paths.Add(shortPath);
-                pianos.Remove(shortPath.Last().ToPoint());
-            }
-
-            if (paths.Count > 0)
-            {
-                var lastPath = paths.Last().ToList();
-                MoveAndPlay(lastPath);
-                var piano = lastPath.Last().Furnishing;
-                pianos.Remove(piano.ToPoint());
-            }
-            else
-            {
-                break;
-            }
-        }
-    }
-
     public static void GreedySwarmAndPlay()
     {
         var assignedPianos = new HashSet<Point>();
+        var movingCowboys = new HashSet<Point>();
+        var assignedGoals = new HashSet<Point>();
         while (true)
         {
             var pianos = AI._Game.Furnishings.Where(f => f.IsPiano && !f.IsDestroyed && !f.IsPlaying && !assignedPianos.Contains(f.ToPoint()))
@@ -67,79 +24,21 @@ static class Solver
                 break;
             }
 
-            var path = PathSafely(cowboys, pianos);
+            var path = PathSafely(cowboys, pianos, p => movingCowboys.Contains(p), p => assignedGoals.Contains(p)).ToList();
             
-            if (path.Count() > 0)
+            if (path.Count > 0)
             {
+                var cowboy = path.First().Cowboy;
                 MoveAndPlay(path);
-                var piano = path.Last().ToPoint();
-                assignedPianos.Add(piano);
+                movingCowboys.Add(cowboy.ToPoint());
+                assignedGoals.Add(path[path.Count - 2].ToPoint());
+                assignedPianos.Add(path[path.Count - 1].ToPoint());
             }
             else
             {
                 break;
             }
         }
-    }
-
-    public static void SwarmAndPlayByEstimatedTravelTime()
-    {
-        var autoStates = AutoStates(AI._Game.MaxTurns - AI._Game.CurrentTurn + 1).ToDictionary(s => s.Turn);
-        var pianos = AI._Game.Furnishings.Where(f => f.IsPiano && !f.IsDestroyed && !f.IsPlaying)
-            .Select(t => t.ToPoint())
-            .ToHashSet();
-        var cowboys = AI._Player.Cowboys.Where(c => !c.IsDead && !c.IsDrunk && c.CanMove && c.TurnsBusy == 0)
-            .Select(c => c.ToPoint())
-            .ToHashSet();
-
-        var assignments = AssignByEstimatedTravelTime(cowboys, pianos);
-        foreach(var assignment in assignments)
-        {
-            var path = SafePathSingle(assignment.Item1, assignment.Item2, autoStates);
-            if (!path.Any())
-            {
-                continue;
-            }
-            MoveAndPlay(path.Select(point => point.ToTile()));
-        }
-    }
-
-    public static IEnumerable<Tuple<Point, Point>> AssignByEstimatedTravelTime(IEnumerable<Point> cowboys, IEnumerable<Point> targets)
-    {
-        const int TURN_COUNT = 80;
-        var autoStates = AutoStates(AI._Game.MaxTurns - AI._Game.CurrentTurn + 1).ToDictionary(s => s.Turn);
-
-        var cowboySet = cowboys.ToHashSet();
-        var targetSet = targets.ToHashSet();
-        
-        var ett = cowboys
-            .Zip(targets, (c, t) => Tuple.Create(c, t))
-            .ToDictionary(p => p, p => {
-                int cost = SafePathSingle(p.Item1, p.Item2, autoStates).Count();
-                return cost == 0 ? TURN_COUNT : cost;
-            });
-
-        var astar = new AStar<IEnumerable<Tuple<Point, Point>>>(
-            new IEnumerable<Tuple<Point, Point>>[] { new Tuple<Point, Point>[] { } },
-            set => set.Count() == cowboys.Count() || set.Count() == targets.Count(),
-            (set1, set2) =>
-            {
-                if (!ett.ContainsKey(set2.Last()))
-                {
-                    Console.WriteLine("MISSING: " + String.Join(",", set2.Select(t => t.ToString()).ToArray()));
-                }
-                return ett[set2.Last()];
-            },
-            set => 0,
-            set =>
-            {
-                return cowboys.Where(c => !set.Any(p => p.Item1.Equals(c)))
-                    .Zip(targets.Where(t => !set.Any(p => p.Item2.Equals(t))), (c, t) => Tuple.Create(c, t))
-                    .Select(p => set.Concat(new Tuple<Point, Point>[] { p }));
-            }
-        );
-        return astar.Path.Last();
-        
     }
 
     public static void MoveAndPlay(IEnumerable<Tile> path)
@@ -155,6 +54,7 @@ static class Solver
             Console.WriteLine("Play [{0}]", String.Join(",", path.Select(t => t.Stringify()).ToArray()));
             cowboy.Play(path.Last().Furnishing);
         }
+        AI._IsAPlayer.Add(cowboy.ToPoint());
     }
 
     public static void BeSafe(Cowboy cowboy)
@@ -165,14 +65,30 @@ static class Solver
         }
 
         var autoStates = AutoStates(2).ToList();
+        Func<Point, bool> isGood = p =>
+        {
+            if (!AI._IsAPlayer.Contains(cowboy.ToPoint()))
+            {
+                if (HasHazard(p))
+                {
+                    return false;
+                }
+                if (Neighboors(p).Any(n => HasCowboy(n, "Brawler")))
+                {
+                    return false;
+                }
+            }
+            return IsSafe(p, autoStates[0]) && IsSafe(p, autoStates[1]);
+        };
+
         var point = cowboy.ToPoint();
-        if (IsSafe(point, autoStates[0]) && IsSafe(point, autoStates[1]))
+        if (isGood(point))
         {
             return;
         }
 
         var walkableAndSafe = Neighboors(point)
-            .Where(p => Solver.IsWalkable(p) && IsSafe(p, autoStates[0]) && IsSafe(p, autoStates[1]))
+            .Where(p => Solver.IsWalkable(p) && isGood(p))
             .ToList();
         if (walkableAndSafe.Any())
         {
@@ -183,12 +99,23 @@ static class Solver
         }
     }
 
+    public static bool HasHazard(Point point)
+    {
+        return point.ToTile().HasHazard;
+    }
+
+    public static bool HasCowboy(Point point, string job)
+    {
+        var tile = point.ToTile();
+        return tile.Cowboy != null && tile.Cowboy.Job == job;
+    }
+
     public static IEnumerable<Point> SafePathSingle(Point start, Point goal, Dictionary<int, AutoState> autoStates)
     {
         var astar = new AStar<PointAtTurn>(
             new [] { new PointAtTurn(start, AI._Game.CurrentTurn) },
             pat => pat.Point.Equals(goal),
-            (pat1, pat2) => pat2.Point.ToTile().HasHazard ? 4 : 2,
+            (pat1, pat2) => pat2.Point.ToTile().HasHazard ? 6 : 2,
             pat => pat.Point.ManhattanDistance(goal),
             pat =>
             {
@@ -210,11 +137,32 @@ static class Solver
         return astar.Path.Select(pat => pat.Point);
     }
 
-    public static IEnumerable<Tile> PathSafely(IEnumerable<Point> starts, IEnumerable<Point> goals)
+    public static IEnumerable<Tile> PathSafely(IEnumerable<Point> starts, IEnumerable<Point> goals, Func<Point, bool> futureEmpty, Func<Point, bool> futureFull)
     {
         var autoStates = AutoStates(AI._Game.MaxTurns - AI._Game.CurrentTurn + 1).ToDictionary(s => s.Turn);
         Func<PointAtTurn, int> h = pat => goals.Min(g => g.ManhattanDistance(pat.Point));
         var goalSet = goals.ToHashSet();
+        Func<Point, int, bool> goodNeighbor = (p, turn) =>
+        {
+            if (goalSet.Contains(p))
+            {
+                return true;
+            }
+            var isSafe = IsSafe(p, autoStates[turn]) && IsSafe(p, autoStates[turn + 1]);
+            var isFuture = turn >= AI._Game.CurrentTurn + 2;
+            if (isSafe)
+            {
+                if (isFuture)
+                {
+                    return (IsWalkable(p) || futureEmpty(p)) && !futureFull(p);
+                }
+                else
+                {
+                    return IsWalkable(p);
+                }
+            }
+            return false;
+        };
 
         var astar = new AStar<PointAtTurn>(
             starts.Select(p => new PointAtTurn(p, AI._Game.CurrentTurn)),
@@ -230,15 +178,19 @@ static class Solver
 
                 var neighboors = Neighboors(pat.Point);
                 // Console.WriteLine("Direct: " + String.Join(" ", neighboors.Select(n => n.ToTile().Stringify()).ToArray()));
-                var filtered = neighboors
-                    .Where(p => goalSet.Contains(p) || (IsWalkable(p) && IsSafe(p, autoStates[pat.Turn]) && IsSafe(p, autoStates[pat.Turn + 1])));
+                var filtered = neighboors.Where(p => goodNeighbor(p, pat.Turn));
                 // Console.WriteLine("Filter: " + String.Join(" ", filtered.Select(n => n.ToTile().Stringify()).ToArray()));
 
                 return filtered.Select(p => new PointAtTurn(p, pat.Turn + 2));
             }
         );
-        
+
         return astar.Path.Select(pat => pat.Point.ToTile());
+    }
+
+    public static IEnumerable<Tile> PathSafely(IEnumerable<Point> starts, IEnumerable<Point> goals)
+    {
+        return PathSafely(starts, goals, p => false, p => false);
     }
 
     public static IEnumerable<Point> WalkingNeighboors(Point point)
@@ -270,8 +222,8 @@ static class Solver
     public static IEnumerable<Point> Neighboors(Point point)
     {
         yield return new Point(point.x, point.y - 1);
-        yield return new Point(point.x + 1, point.y);
         yield return new Point(point.x, point.y + 1);
+        yield return new Point(point.x + 1, point.y);
         yield return new Point(point.x - 1, point.y);
     }
 
