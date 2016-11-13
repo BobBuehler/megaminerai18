@@ -98,7 +98,7 @@ namespace Joueur.cs.Games.Saloon
             Console.WriteLine("Turn #{0}", this.Game.CurrentTurn);
             var stopwatch = new Stopwatch();
             stopwatch.Start();
-
+            
             AI._IsAPlayer = new HashSet<Point>();
 
             Spawn();
@@ -118,17 +118,42 @@ namespace Joueur.cs.Games.Saloon
 
         void Spawn()
         {
-            var target = this.Player.YoungGun.CallInTile;
-            if (target.Cowboy != null && target.Cowboy.Owner == this.Player)
+            var youngGun = this.Player.YoungGun;
+            var spawnTile = youngGun.CallInTile;
+            
+            var cowboys = this.Player.Cowboys;
+            var opponentCowboys = this.Opponent.Cowboys;
+            
+            if (spawnTile.Cowboy != null && spawnTile.Cowboy.Owner == this.Player)
             {
                 return;
             }
+            
+            if (spawnTile.Furnishing != null && spawnTile.Furnishing.IsPiano)
+            {
+                // Should we spawn on piano?
+                var friendlyPath = Solver.PathSafely(new [] { spawnTile.ToPoint() }, cowboys.Select(c => c.ToPoint()));
+                var opponentPath = Solver.PathSafely(new [] { spawnTile.ToPoint() }, opponentCowboys.Select(c => c.ToPoint()));
+                // Maybe spawn if we can play on it
+                if (friendlyPath.Count() <= 3)
+                {
+                    if (opponentPath.Count() > 3)
+                    {
+                        return;
+                    }
+                }
+                else if (opponentPath.Count() > 3)
+                {
+                    return;
+                }
+            }
+
             var jobPriority = new [] { "Bartender", "Sharpshooter", "Brawler" };
             foreach(var job in jobPriority)
             {
-                if (this.Player.Cowboys.Count(c => c.Job == job) < 2)
+                if (cowboys.Count(c => c.Job == job) < 2)
                 {
-                    this.Player.YoungGun.CallIn(job);
+                    youngGun.CallIn(job);
                     break;
                 }
             }
