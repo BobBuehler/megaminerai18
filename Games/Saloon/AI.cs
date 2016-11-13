@@ -16,6 +16,7 @@ namespace Joueur.cs.Games.Saloon
         public static Game _Game;
         public static Player _Player;
         public static Player _OtherPlayer;
+        public static Random _Random;
 
         #region Properties
         #pragma warning disable 0169 // the never assigned warnings between here are incorrect. We set it for you via reflection. So these will remove it from the Error List.
@@ -53,12 +54,13 @@ namespace Joueur.cs.Games.Saloon
         /// </remarks>
         public override void Start()
         {
-            this.Opponent = this.Game.Players.MinByValue(p => p == this.Player );
+            this.Opponent = this.Game.Players.First(p => p.Id != this.Player.Id);
     
             base.Start();
             AI._Game = this.Game;
             AI._Player = this.Player;
-            AI._OtherPlayer = this.Game.Players.First(p => p.Id != this.Player.Id);
+            AI._OtherPlayer = this.Opponent;
+            AI._Random = new Random();
         }
 
         /// <summary>
@@ -92,6 +94,7 @@ namespace Joueur.cs.Games.Saloon
         /// <returns>Represents if you want to end your turn. True means end your turn, False means to keep your turn going and re-call this function.</returns>
         public bool RunTurn()
         {
+            Console.WriteLine("Turn #{0}", this.Game.CurrentTurn);
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
@@ -106,8 +109,9 @@ namespace Joueur.cs.Games.Saloon
             }
             
             Spawn();
-            
-            Console.WriteLine("{0} - {1}", this.Game.CurrentTurn, stopwatch.ElapsedMilliseconds);
+            this.Player.Cowboys.ForEach(c => Solver.BeSafe(c));
+
+            Console.WriteLine("Turn #{0} in {1}ms", this.Game.CurrentTurn, stopwatch.ElapsedMilliseconds);
 
             return true;
         }
