@@ -351,7 +351,14 @@ static class Solver
         );
         state.Bottles
             .Where(kvp => IsBottlePathable(kvp.Key))
-            .ForEach(kvp => nextState.Bottles[NextPoint(kvp.Key, kvp.Value.Direction)] = kvp.Value);
+            .ForEach(kvp =>
+            {
+                var nextPoint = NextPoint(kvp.Key, kvp.Value.Direction);
+                if (!nextState.Bottles.Remove(nextPoint))
+                {
+                    nextState.Bottles.Add(NextPoint(kvp.Key, kvp.Value.Direction), kvp.Value);
+                }
+            });
 
         return nextState;
     }
