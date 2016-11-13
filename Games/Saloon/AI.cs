@@ -96,7 +96,7 @@ namespace Joueur.cs.Games.Saloon
             stopwatch.Start();
 
             Spawn();
-            PlayPianos();
+            Solver.SwarmPianos();
             Spawn();
             
             Console.WriteLine("{0} - {1}", this.Game.CurrentTurn, stopwatch.ElapsedMilliseconds);

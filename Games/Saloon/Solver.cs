@@ -5,6 +5,67 @@ using System.Linq;
 
 static class Solver
 {
+    public static void SwarmPianos()
+    {
+        while (true)
+        {
+            var pianos = AI._Game.Furnishings.Where(f => f.IsPiano && !f.IsDestroyed && !f.IsPlaying)
+                .Select(t => t.ToPoint())
+                .ToHashSet();
+            var cowboys = AI._Player.Cowboys.Where(c => !c.IsDead && !c.IsDrunk && c.CanMove && c.TurnsBusy == 0)
+                .Select(c => c.ToPoint())
+                .ToList();
+
+            if (pianos.Count == 0 || cowboys.Count() == 0)
+            {
+                break;
+            }
+
+            var nth = Math.Min(pianos.Count, cowboys.Count);
+
+            var paths = new List<IEnumerable<Tile>>(nth);
+            
+            for (int i = 0; i < nth; i++)
+            {
+                var shortPath = PathSafely(cowboys, p => pianos.Contains(p));
+                if (shortPath.Count() == 0)
+                {
+                    break;
+                }
+                paths.Add(shortPath);
+                pianos.Remove(shortPath.Last().ToPoint());
+            }
+
+            if (paths.Count > 0)
+            {
+                var path = paths.Last();
+                MoveAndPlay(path);
+                var piano = path.Last();
+                pianos.Remove(piano.ToPoint());
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+
+    public static void MoveAndPlay(IEnumerable<Tile> path)
+    {
+        var cowboy = path.First().Cowboy;
+        var piano = path.Last();
+        if (path.Count() > 2)
+        {
+            Console.WriteLine("Move [{0}]", String.Join(",", path.Select(t => t.Stringify()).ToArray()));
+            cowboy.Move(path.ElementAt(1));
+        }
+        if (path.Count() <= 3)
+        {
+            Console.WriteLine("Play [{0}]", String.Join(",", path.Select(t => t.Stringify()).ToArray()));
+            cowboy.Play(path.Last().Furnishing);
+        }
+    }
+
     public static IEnumerable<Tile> PathSafely(IEnumerable<Point> starts, Func<Point, bool> isGoal)
     {
         var autoStates = AutoStates(AI._Game.MaxTurns - AI._Game.CurrentTurn + 1).ToDictionary(s => s.Turn);
