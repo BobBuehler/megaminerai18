@@ -99,7 +99,7 @@ namespace Joueur.cs.Games.Saloon
             stopwatch.Start();
 
             Spawn();
-            Solver.SwarmPianos();
+            Solver.GreedySwarmAndPlay();
             Spawn();
             this.Player.Cowboys.ForEach(c => Solver.BeSafe(c));
 
@@ -120,7 +120,7 @@ namespace Joueur.cs.Games.Saloon
                     break;
                 }
 
-                var path = Solver.PathSafely(cowboys, p => pianos.Contains(p)).ToList();
+                var path = Solver.PathSafely(cowboys, pianos).ToList();
                 if (path.Count == 0)
                 {
                     Console.WriteLine("Nope");
