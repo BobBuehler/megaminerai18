@@ -7,27 +7,51 @@ static class Solver
 {
     public static IEnumerable<Tile> PathSafely(IEnumerable<Point> starts, Func<Point, bool> isGoal)
     {
-        var autoStates = AutoStates(40).ToDictionary(s => s.Turn);
+        var autoStates = AutoStates(AI._Game.MaxTurns - AI._Game.CurrentTurn + 1).ToDictionary(s => s.Turn);
 
         var astar = new AStar<PointAtTurn>(
             starts.Select(p => new PointAtTurn(p, AI._Game.CurrentTurn)),
             pat => isGoal(pat.Point),
-            (pat1, pat2) => pat2.Point.ToTile().HasHazard ? 2 : 1,
+            (pat1, pat2) => pat2.Point.ToTile().HasHazard ? 4 : 2,
             pat => 0,
-            pat => SafeNeighboors(pat.Point, autoStates[pat.Turn], autoStates[pat.Turn + 1]).Select(p => new PointAtTurn(p, pat.Turn + 2))
-        );
+            pat =>
+            {
+                if (pat.Turn >= AI._Game.MaxTurns)
+                {
+                    return Enumerable.Empty<PointAtTurn>();
+                }
 
+                var neighboors = Neighboors(pat.Point);
+                // Console.WriteLine("Direct: " + String.Join(" ", neighboors.Select(n => n.ToTile().Stringify()).ToArray()));
+                var filtered = neighboors
+                    .Where(p => isGoal(p) || (IsWalkable(p) && IsSafe(p, autoStates[pat.Turn]) && IsSafe(p, autoStates[pat.Turn + 1])));
+                // Console.WriteLine("Filter: " + String.Join(" ", filtered.Select(n => n.ToTile().Stringify()).ToArray()));
+
+                return filtered.Select(p => new PointAtTurn(p, pat.Turn + 2));
+            }
+        );
+        
         return astar.Path.Select(pat => pat.Point.ToTile());
     }
 
-    public static IEnumerable<Point> SafeNeighboors(Point start, AutoState state, AutoState nextState)
+    public static IEnumerable<Point> WalkingNeighboors(Point point)
     {
-        return Neighboors(start).Where(p => IsSafe(p, state) && IsSafe(p, nextState));
+        return Neighboors(point).Where(p => IsWalkable(p));
+    }
+
+    public static bool IsWalkable(Point point)
+    {
+        var tile = point.ToTile();
+        var isWalkable = tile.Cowboy == null && tile.Furnishing == null && !tile.IsBalcony;
+        // Console.WriteLine("IsWalkable={0}: {1}, {2}", isWalkable, point, tile.Stringify());
+        return isWalkable;
     }
 
     public static bool IsSafe(Point point, AutoState state)
     {
-        return !state.OurCallIn.Equals(point) && !state.TheirCallIn.Equals(point) && !state.Bottles.ContainsKey(point);
+        var isSafe = !state.OurCallIn.Equals(point) && !state.TheirCallIn.Equals(point) && !state.Bottles.ContainsKey(point);
+        // Console.WriteLine("IsSafe={0}: {1}, {2}", isSafe, point, state);
+        return isSafe;
     }
 
     public static IEnumerable<Point> Neighboors(Point point)
@@ -150,12 +174,13 @@ static class Solver
             case "West":
                 return new Point(point.x - 1, point.y);
         }
-        return new Point(0, 0); // BAD
+        Console.WriteLine("NextPoint Bad Direction: " + direction);
+        return new Point(0, 0);
     }
 
     public static Point CallInPoint(Point youngGun)
     {
-        var point = new Point();
+        var point = new Point(youngGun.x, youngGun.y);
 
         if (youngGun.x == 0)
         {
@@ -195,6 +220,18 @@ static class Solver
             OurYoungGun = ourYoungGun;
             TheirYoungGun = theirYoungGun;
         }
+
+        public override string ToString()
+        {
+            return String.Format("{0}{1}: o{2}-{3} t{4}-{5}, b[{6}]",
+                Turn,
+                IsOurTurn ? "o" : "t",
+                OurYoungGun,
+                OurCallIn,
+                TheirYoungGun,
+                TheirCallIn,
+                String.Join(",", Bottles.Keys.ToArray()));
+        }
     }
 
     public static IEnumerable<AutoState> AutoStates(int count)
@@ -220,7 +257,7 @@ static class Solver
             state.IsOurTurn ? NextYoungGunPoint(state.TheirYoungGun) : state.TheirYoungGun
         );
         nextState.Bottles = state.Bottles
-            .Where(kvp => !kvp.Key.ToTile().IsBalcony && kvp.Key.ToTile().Furnishing == null)
+            .Where(kvp => IsBottlePathable(kvp.Key))
             .ToDictionary(kvp => NextPoint(kvp.Key, kvp.Value.Direction), kvp => kvp.Value);
 
         return nextState;

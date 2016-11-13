@@ -87,4 +87,9 @@ static class Extensions
         cache.OnMiss = delegate (T input, out TResult output) { output = func(input); return true; };
         return t => cache[t];
     }
+
+    public static HashSet<T> ToHashSet<T>(this IEnumerable<T> source)
+    {
+        return new HashSet<T>(source);
+    }
 }
