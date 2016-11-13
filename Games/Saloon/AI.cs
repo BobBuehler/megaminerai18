@@ -279,8 +279,7 @@ namespace Joueur.cs.Games.Saloon
         void CauseTrouble()
         {
             var cowboys = this.Player.Cowboys.Where(c => (!c.IsDead && !c.IsDrunk && c.CanMove && c.TurnsBusy == 0) && (c.Job == "Brawler")).ToList();
-            var targets = AI._OtherPlayer.Cowboys.Select(t => t.ToPoint());
-            var targets = AI._OtherPlayer.Cowboys.Select(t => t.ToPoint()).ToHashSet();
+            var targets = AI._OtherPlayer.Cowboys.Where(c => !c.IsDead).Select(t => t.ToPoint());
             
             if(cowboys.Count() == 0 || targets.Count() == 0)
             {
