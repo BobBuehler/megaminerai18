@@ -203,7 +203,7 @@ namespace Joueur.cs.Games.Saloon
         
         void GreedyBartenders(int throwLength)
         {
-            var bartenders = this.Player.Cowboys.Where(c => !c.IsDead && !c.IsDrunk && c.TurnsBusy == 0 && c.Job == "Bartender");
+            var bartenders = this.Player.Cowboys.Where(c => !c.IsDead && !c.IsDrunk && c.TurnsBusy == 0 && !AI._IsAPlayer.Contains(c.ToPoint()) && c.Job == "Bartender");
             var opponentCowboys = this.Opponent.Cowboys.Where(c => !c.IsDead).ToDictionary(c => c.ToPoint(), c => c );
             foreach(var bartender in bartenders)
             {

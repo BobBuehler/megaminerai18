@@ -51,7 +51,7 @@ static class Solver
         {
             var cowboy = playPath[0].Cowboy;
             var piano = playPath[1].Furnishing;
-            var autoStates = AutoStates(3).ToList();
+            //var autoStates = AutoStates(3).ToList();
             var newPositions = Neighboors(piano.ToPoint())
                 .Where(n => n.ManhattanDistance(cowboy.ToPoint()) == 2)
                 .Where(n => !n.ToTile().HasHazard && IsWalkable(n));
