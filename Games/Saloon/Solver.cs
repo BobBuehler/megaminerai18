@@ -108,9 +108,6 @@ static class Solver
     {
         const int TURN_COUNT = 80;
         var autoStates = AutoStates(AI._Game.MaxTurns - AI._Game.CurrentTurn + 1).ToDictionary(s => s.Turn);
-
-        var cowboySet = cowboys.ToHashSet();
-        var targetSet = targets.ToHashSet();
         
         var ett = cowboys
             .Zip(targets, (c, t) => Tuple.Create(c, t))
