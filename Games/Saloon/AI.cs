@@ -99,14 +99,8 @@ namespace Joueur.cs.Games.Saloon
             stopwatch.Start();
 
             Spawn();
-            if(this.Game.CurrentTurn >= 80)
-            {
-                CauseTrouble();
-            }
-            else
-            {
-                Solver.GreedySwarmAndPlay();
-            }
+            Solver.GreedySwarmAndPlay();
+            CauseTrouble();
             Spawn();
             this.Player.Cowboys.ForEach(c => Solver.BeSafe(c));
 
