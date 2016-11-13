@@ -10,7 +10,8 @@ static class Flavor
             "YIKES!",
             "BOY HOWDY!",
             "WHAT IN TARNATION?",
-            "HOW RUDE!"
+            "HOW RUDE!",
+            "STOP THAT!"
         };
 
         if (AI._Random.Next(5) == 0)

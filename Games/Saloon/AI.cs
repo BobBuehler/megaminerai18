@@ -17,6 +17,7 @@ namespace Joueur.cs.Games.Saloon
         public static Player _Player;
         public static Player _OtherPlayer;
         public static Random _Random;
+        public static HashSet<Point> _IsAPlayer;
 
         #region Properties
         #pragma warning disable 0169 // the never assigned warnings between here are incorrect. We set it for you via reflection. So these will remove it from the Error List.
@@ -97,35 +98,101 @@ namespace Joueur.cs.Games.Saloon
             Console.WriteLine("Turn #{0}", this.Game.CurrentTurn);
             var stopwatch = new Stopwatch();
             stopwatch.Start();
+            
+            AI._IsAPlayer = new HashSet<Point>();
+
 
             Spawn();
             
             Solver.GreedySwarmAndPlay();
             CauseTrouble();
             SharpshooterAttack();
-            
+
             Spawn();
             this.Player.Cowboys.ForEach(c => Solver.BeSafe(c));
 
-            Console.WriteLine("Turn #{0} in {1}ms", this.Game.CurrentTurn, stopwatch.ElapsedMilliseconds);
+            Console.WriteLine("Turn #{0}. Score={1}-{2}. Time={3}ms.",
+                this.Game.CurrentTurn,
+                this.Player.Score,
+                this.Opponent.Score,
+                stopwatch.ElapsedMilliseconds);
 
             return true;
         }
 
         void Spawn()
         {
-            var target = this.Player.YoungGun.CallInTile;
-            if (target.Cowboy != null && target.Cowboy.Owner == this.Player)
+            var youngGun = this.Player.YoungGun;
+            var spawnTile = youngGun.CallInTile;
+            
+            var cowboys = this.Player.Cowboys;
+            var opponentCowboys = this.Opponent.Cowboys;
+            
+            if (spawnTile.Cowboy != null && spawnTile.Cowboy.Owner == this.Player)
             {
                 return;
             }
-            var jobPriority = new [] { "Bartender", "Sharpshooter", "Brawler" };
+            
+            if (spawnTile.Furnishing != null && spawnTile.Furnishing.IsPiano)
+            {
+                // Should we spawn on piano?
+                var friendlyPath = Solver.PathSafely(new [] { spawnTile.ToPoint() }, cowboys.Select(c => c.ToPoint()));
+                var opponentPath = Solver.PathSafely(new [] { spawnTile.ToPoint() }, opponentCowboys.Select(c => c.ToPoint()));
+                // Maybe spawn if we can play on it
+                if (friendlyPath.Count() <= 3)
+                {
+                    if (opponentPath.Count() > 3)
+                    {
+                        return;
+                    }
+                }
+                else if (opponentPath.Count() > 3)
+                {
+                    return;
+                }
+            }
+
+            var jobPriority = new [] { "Sharpshooter", "Bartender", "Brawler" };
             foreach(var job in jobPriority)
             {
-                if (this.Player.Cowboys.Count(c => c.Job == job) < 2)
+                if (cowboys.Count(c => c.Job == job) < 2)
                 {
-                    this.Player.YoungGun.CallIn(job);
+                    youngGun.CallIn(job);
                     break;
+                }
+            }
+        }
+        
+        void GreedyBartenders()
+        {
+            var bartenders = this.Player.Cowboys.Where(c => c.CanMove && !c.IsDead && !c.IsDrunk && c.TurnsBusy == 0 && c.Job == "Bartender");
+            var opponentCowboys = this.Opponent.Cowboys.Where(c => !c.IsDead).Select(c => c.ToPoint()).ToHashSet();
+            foreach(var bartender in bartenders)
+            {
+                this.GreedyBartender(bartender, opponentCowboys);
+            }
+        }
+        
+        void GreedyBartender(Saloon.Cowboy bartender, IEnumerable<Point> opponentCowboys)
+        {
+            var startPoint = bartender.ToPoint();
+            foreach (var direction in new string[] {"North", "East", "South", "West"})
+            {
+                Func<Point, Point> nextPoint = p => Solver.NextPoint(p, direction);
+                var stepPoint = nextPoint(startPoint);
+                
+                while(stepPoint.ManhattanDistance(startPoint) <= 2)
+                {
+                    if (opponentCowboys.Contains(stepPoint))
+                    {
+                        bartender.Act(nextPoint(startPoint).ToTile(), direction);
+                        return;
+                    }
+                    if (!Solver.IsBottlePathable(stepPoint))
+                    {
+                        break;
+                    }
+                    stepPoint = nextPoint(stepPoint);
                 }
             }
         }
@@ -213,6 +280,8 @@ namespace Joueur.cs.Games.Saloon
         {
             var cowboys = this.Player.Cowboys.Where(c => (!c.IsDead && !c.IsDrunk && c.CanMove && c.TurnsBusy == 0) && (c.Job == "Brawler")).ToList();
             var targets = AI._OtherPlayer.Cowboys.Select(t => t.ToPoint());
+            var targets = AI._OtherPlayer.Cowboys.Select(t => t.ToPoint()).ToHashSet();
+            
             if(cowboys.Count() == 0 || targets.Count() == 0)
             {
                 return;
