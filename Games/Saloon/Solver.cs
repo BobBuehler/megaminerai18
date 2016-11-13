@@ -1,4 +1,4 @@
-﻿using Joueur.cs.Games.Saloon;
+using Joueur.cs.Games.Saloon;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -94,8 +94,8 @@ static class Solver
             return;
         }
 
-        var autoStates = AutoStates(3).ToList();
-        Func<Point, bool> isGood = p =>
+        var autoStates = AutoStates(2).ToList();
+        Func<Point, int, bool> isGood = (p, turn) =>
         {
             if (!AI._IsAPlayer.Contains(cowboy.ToPoint()))
             {
@@ -108,17 +108,17 @@ static class Solver
                     return false;
                 }
             }
-            return IsSafe(p, autoStates[0]) && IsSafe(p, autoStates[1]) && IsSafe(p, autoStates[2]);
+            return IsSafe(p, autoStates[turn]) && IsSafe(p, autoStates[turn + 1]);
         };
 
         var point = cowboy.ToPoint();
-        if (isGood(point))
+        if (isGood(point, 0))
         {
             return;
         }
 
         var walkableAndSafe = Neighboors(point)
-            .Where(p => Solver.IsWalkable(p) && isGood(p))
+            .Where(p => Solver.IsWalkable(p) && isGood(p, 0))
             .ToList();
         if (walkableAndSafe.Any())
         {
