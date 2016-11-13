@@ -1,4 +1,4 @@
-using Joueur.cs.Games.Saloon;
+﻿using Joueur.cs.Games.Saloon;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,7 +15,7 @@ static class Solver
             var pianos = AI._Game.Furnishings.Where(f => f.IsPiano && !f.IsDestroyed && !f.IsPlaying && !assignedPianos.Contains(f.ToPoint()))
                 .Select(t => t.ToPoint())
                 .ToHashSet();
-            var cowboys = AI._Player.Cowboys.Where(c => !c.IsDead && !c.IsDrunk && c.CanMove && !movingCowboys.Contains(c.ToPoint()))
+            var cowboys = AI._Cowboys.Where(c => !c.IsDead && !c.IsDrunk && c.CanMove && !movingCowboys.Contains(c.ToPoint()))
                 .Select(c => c.ToPoint())
                 .ToHashSet();
 
@@ -580,7 +580,7 @@ static class Solver
 
     public static void MoveIn()
     {
-        var cowboys = AI._Player.Cowboys.Where(c => !c.IsDead && !c.IsDrunk && c.CanMove)
+        var cowboys = AI._Cowboys.Where(c => !c.IsDead && !c.IsDrunk && c.CanMove)
             .Select(c => c.ToPoint())
             .ToHashSet();
         var inDir = AI._Player.YoungGun.Tile.Y == 0 ? "South" : "North";

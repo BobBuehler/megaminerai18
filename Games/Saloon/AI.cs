@@ -18,6 +18,7 @@ namespace Joueur.cs.Games.Saloon
         public static Player _OtherPlayer;
         public static Random _Random;
         public static HashSet<Point> _IsAPlayer;
+        public static IEnumerable<Cowboy> _Cowboys;
 
         #region Properties
         #pragma warning disable 0169 // the never assigned warnings between here are incorrect. We set it for you via reflection. So these will remove it from the Error List.
@@ -100,6 +101,7 @@ namespace Joueur.cs.Games.Saloon
             stopwatch.Start();
             
             AI._IsAPlayer = new HashSet<Point>();
+            AI._Cowboys = this.Player.Cowboys;
 
             Spawn();
             
@@ -109,7 +111,7 @@ namespace Joueur.cs.Games.Saloon
             SharpshooterAttack();
 
             Spawn();
-            this.Player.Cowboys.ForEach(c => Solver.BeSafe(c));
+            AI._Cowboys.ForEach(c => Solver.BeSafe(c));
 
             Console.WriteLine("Turn #{0}. Score={1}-{2}. Time={3}ms.",
                 this.Game.CurrentTurn,
@@ -125,10 +127,15 @@ namespace Joueur.cs.Games.Saloon
             var youngGun = this.Player.YoungGun;
             var spawnTile = youngGun.CallInTile;
             
-            var cowboys = this.Player.Cowboys;
+            var cowboys = AI._Cowboys;
             var opponentCowboys = this.Opponent.Cowboys;
             
             if (spawnTile.Cowboy != null && spawnTile.Cowboy.Owner == this.Player)
+            {
+                return;
+            }
+
+            if (!youngGun.CanCallIn)
             {
                 return;
             }
@@ -164,7 +171,9 @@ namespace Joueur.cs.Games.Saloon
             {
                 if (cowboys.Count(c => c.Job == job) < 2)
                 {
-                    youngGun.CallIn(job);
+                    var newCowboy = youngGun.CallIn(job);
+                    Console.WriteLine(newCowboy.ToPoint());
+                    AI._Cowboys = AI._Cowboys.Concat(new[] { newCowboy }).ToList();
                     break;
                 }
             }
@@ -179,7 +188,7 @@ namespace Joueur.cs.Games.Saloon
         
         void MobilizeBartenders(int throwLength)
         {
-            var bartenders = this.Player.Cowboys.Where(c => !c.IsDead && !c.IsDrunk && c.CanMove && !AI._IsAPlayer.Contains(c.ToPoint()) && c.Job == "Bartender");
+            var bartenders = AI._Cowboys.Where(c => !c.IsDead && !c.IsDrunk && c.CanMove && !AI._IsAPlayer.Contains(c.ToPoint()) && c.Job == "Bartender");
             var shootingSpots = this.Opponent.Cowboys
                                     .Where(c => !c.IsDead && !c.IsDrunk)
                                     .SelectMany(c => Solver.BottleLaunchExpansion(c.ToPoint(), throwLength))
@@ -204,7 +213,7 @@ namespace Joueur.cs.Games.Saloon
         void GreedyBartenders(int throwLength)
         {
             Func<Point, bool> allowedToAttack = p => !AI._IsAPlayer.Contains(p) || !Solver.AnyInRange(p, 2, Solver.Pianos());
-            var bartenders = this.Player.Cowboys.Where(c => !c.IsDead && !c.IsDrunk && c.TurnsBusy == 0 && allowedToAttack(c.ToPoint()) && c.Job == "Bartender");
+            var bartenders = AI._Cowboys.Where(c => !c.IsDead && !c.IsDrunk && c.TurnsBusy == 0 && allowedToAttack(c.ToPoint()) && c.Job == "Bartender");
             var opponentCowboys = this.Opponent.Cowboys.Where(c => !c.IsDead).ToDictionary(c => c.ToPoint(), c => c );
             foreach(var bartender in bartenders)
             {
@@ -266,7 +275,7 @@ namespace Joueur.cs.Games.Saloon
             var spawnTile = youngGun.CallInTile;
             var spawnPoint = spawnTile.ToPoint();
             var nextSpawnPoint = Solver.AutoStates(3).Last().OurCallIn;
-            var cowboys = this.Player.Cowboys.Where(c => !c.IsDead);
+            var cowboys = AI._Cowboys.Where(c => !c.IsDead);
             var bartenders = cowboys.Where(c => c.Job == "Bartender");
             var moved = false;
             
@@ -341,7 +350,7 @@ namespace Joueur.cs.Games.Saloon
 
         void CauseTrouble()
         {
-            var cowboys = this.Player.Cowboys.Where(c => (!c.IsDead && !c.IsDrunk && c.CanMove && c.TurnsBusy == 0) && (c.Job == "Brawler")).ToList();
+            var cowboys = AI._Cowboys.Where(c => (!c.IsDead && !c.IsDrunk && c.CanMove && c.TurnsBusy == 0) && (c.Job == "Brawler")).ToList();
             var targets = AI._OtherPlayer.Cowboys.Where(c => !c.IsDead).Select(t => t.ToPoint());
             
             if(cowboys.Count() == 0 || targets.Count() == 0)
@@ -360,7 +369,7 @@ namespace Joueur.cs.Games.Saloon
         
         void SharpshooterAttack()
         {
-            var cowboys = this.Player.Cowboys.Where(c => (!c.IsDead && !c.IsDrunk && c.CanMove && c.TurnsBusy == 0) && (c.Job == "Sharpshooter")).ToList();
+            var cowboys = AI._Cowboys.Where(c => (!c.IsDead && !c.IsDrunk && c.CanMove && c.TurnsBusy == 0) && (c.Job == "Sharpshooter")).ToList();
             var targets = AI._OtherPlayer.Cowboys.Where(c => !c.IsDead).Select(t => t.ToPoint());
             var targetsNearPianos = targets.Where(t => Solver.Neighboors(t).Select(n => n.ToTile()).Any(n => n.Furnishing != null && n.Furnishing.IsPiano));
 
