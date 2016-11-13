@@ -145,7 +145,7 @@ static class Solver
         var astar = new AStar<PointAtTurn>(
             new [] { new PointAtTurn(start, AI._Game.CurrentTurn) },
             pat => pat.Point.Equals(goal),
-            (pat1, pat2) => pat2.Point.ToTile().HasHazard ? 6 : 2,
+            (pat1, pat2) => pat2.Point.ToTile().HasHazard ? 8 : 2,
             pat => pat.Point.ManhattanDistance(goal),
             pat =>
             {
@@ -594,6 +594,6 @@ static class Solver
 
     public static IEnumerable<Point> Pianos()
     {
-        return AI._Game.Furnishings.Select(f => f.ToPoint()).Where(p => IsPiano(p));
+        return AI._Game.Furnishings.Where(f => !f.IsDestroyed).Select(f => f.ToPoint()).Where(p => IsPiano(p));
     }
 }
