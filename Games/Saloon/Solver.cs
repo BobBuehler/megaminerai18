@@ -202,11 +202,30 @@ static class Solver
             }
             return false;
         };
+        
+        Func<Point, int> spawnCost = (p) =>
+        {
+            var spawnPoint = AI._Player.YoungGun.CallInTile.ToPoint();
+            var nextSpawnPoint = AutoStates(3).Last().OurCallIn;
+
+            return 20 - spawnPoint.ManhattanDistance(p) - nextSpawnPoint.ManhattanDistance(p);
+        };
+        Func<PointAtTurn, PointAtTurn, int> costFunc = (start, dest) =>
+        {
+            if (AI._Game.CurrentTurn < 10)
+            {
+                return spawnCost(dest.Point) - spawnCost(start.Point);
+            }
+            else
+            {
+                return dest.Point.ToTile().HasHazard ? 4 : 2;
+            }
+        };
 
         var astar = new AStar<PointAtTurn>(
             starts.Select(p => new PointAtTurn(p, AI._Game.CurrentTurn)),
             pat => goalSet.Contains(pat.Point),
-            (pat1, pat2) => pat2.Point.ToTile().HasHazard ? 4 : 2,
+            costFunc,
             h.Memoize(),
             pat =>
             {
