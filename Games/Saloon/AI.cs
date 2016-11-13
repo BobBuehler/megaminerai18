@@ -104,7 +104,7 @@ namespace Joueur.cs.Games.Saloon
             Spawn();
             
             Solver.GreedySwarmAndPlay();
-            GreedyBartenders();
+            MobilizeGreedyBartenders();
             CauseTrouble();
             SharpshooterAttack();
 
@@ -163,17 +163,46 @@ namespace Joueur.cs.Games.Saloon
             }
         }
         
-        void GreedyBartenders()
+        void MobilizeGreedyBartenders()
+        {
+            var throwLength = 7;
+            MobilizeBartenders(throwLength);
+            GreedyBartenders(throwLength);
+        }
+        
+        void MobilizeBartenders(int throwLength)
+        {
+            var bartenders = this.Player.Cowboys.Where(c => !c.IsDead && !c.IsDrunk && c.CanMove && c.Job == "Bartender");
+            foreach (var bartender in bartenders)
+            {
+                var opponentCowboys = this.Opponent.Cowboys.Where(c => !c.IsDead).Select(c => c.ToPoint()).ToHashSet();
+                var shootingSpots = opponentCowboys.SelectMany(c => Solver.CardinalExpansion(c, throwLength)).ToHashSet();
+                
+                if(shootingSpots.Count() == 0)
+                {
+                    continue;
+                }
+                
+                var path = Solver.PathSafely( new [] { bartender.ToPoint() }, shootingSpots );
+                
+                if (path.Count() > 2)
+                {
+                    bartender.Move(path.ElementAt(1));
+                }
+            }
+        }
+        
+        void GreedyBartenders(int throwLength)
         {
             var bartenders = this.Player.Cowboys.Where(c => !c.IsDead && !c.IsDrunk && c.TurnsBusy == 0 && c.Job == "Bartender");
             var opponentCowboys = this.Opponent.Cowboys.Where(c => !c.IsDead).Select(c => c.ToPoint()).ToHashSet();
             foreach(var bartender in bartenders)
             {
-                this.GreedyBartender(bartender, opponentCowboys);
+                this.GreedyBartender(bartender, opponentCowboys, throwLength);
             }
         }
         
-        void GreedyBartender(Saloon.Cowboy bartender, IEnumerable<Point> opponentCowboys)
+        void GreedyBartender(Saloon.Cowboy bartender, IEnumerable<Point> opponentCowboys, int throwLength)
         {
             var startPoint = bartender.ToPoint();
             foreach (var direction in new string[] {"North", "East", "South", "West"})
@@ -181,7 +210,7 @@ namespace Joueur.cs.Games.Saloon
                 Func<Point, Point> nextPoint = p => Solver.NextPoint(p, direction);
                 var stepPoint = nextPoint(startPoint);
                 
-                while(stepPoint.ManhattanDistance(startPoint) <= 7 && !startPoint.ToTile().IsBalcony)
+                while(stepPoint.ManhattanDistance(startPoint) <= throwLength && !startPoint.ToTile().IsBalcony)
                 {
                     if (opponentCowboys.Contains(stepPoint))
                     {
