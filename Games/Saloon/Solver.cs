@@ -53,7 +53,6 @@ static class Solver
     public static void MoveAndPlay(IEnumerable<Tile> path)
     {
         var cowboy = path.First().Cowboy;
-        var piano = path.Last();
         if (path.Count() > 2)
         {
             Console.WriteLine("Move [{0}]", String.Join(",", path.Select(t => t.Stringify()).ToArray()));
