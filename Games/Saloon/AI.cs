@@ -97,26 +97,33 @@ namespace Joueur.cs.Games.Saloon
 
             Spawn();
 
-            var pianos = this.Game.Furnishings.Where(f => f.IsPiano && !f.IsDestroyed);
-
-            foreach(var cowboy in this.Player.Cowboys.Where(c => !c.IsDead && !c.IsDrunk))
+            while (true)
             {
-                var targetPianos = pianos.Where(f => !f.IsPlaying);
-                if (!targetPianos.Any())
+                var pianos = this.Game.Furnishings.Where(f => f.IsPiano && !f.IsDestroyed && !f.IsPlaying).Select(t => t.ToPoint()).ToHashSet();
+                var cowboys = this.Player.Cowboys.Where(c => !c.IsDead && !c.IsDrunk && c.CanMove && c.TurnsBusy == 0).Select(c => c.ToPoint());
+
+                if (pianos.Count == 0 || cowboys.Count() == 0)
                 {
-                    return true;
-                }
-                var piano = targetPianos.MinByValue(p => p.ToPoint().ManhattanDistance(cowboy.ToPoint()));
-                
-                List<Tile> path = this.FindPath(cowboy.Tile, piano.Tile);
-                if (path.Count > 1)
-                {
-                    cowboy.Move(path.First());
+                    break;
                 }
 
-                if (piano.ToPoint().ManhattanDistance(cowboy.ToPoint()) == 1)
+                var path = Solver.PathSafely(cowboys, p => pianos.Contains(p)).ToList();
+                if (path.Count == 0)
                 {
-                    cowboy.Play(piano);
+                    Console.WriteLine("Nope");
+                    break;
+                }
+
+                var cowboy = path[0].Cowboy;
+                if (path.Count > 2)
+                {
+                    Console.WriteLine("Move [{0}]", String.Join(",", path.Select(t => t.Stringify()).ToArray()));
+                    cowboy.Move(path[1]);
+                }
+                if (path.Count <= 3)
+                {
+                    Console.WriteLine("Play [{0}]", String.Join(",", path.Select(t => t.Stringify()).ToArray()));
+                    cowboy.Play(path.Last().Furnishing);
                 }
             }
             
