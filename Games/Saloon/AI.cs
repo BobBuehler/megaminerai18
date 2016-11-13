@@ -99,14 +99,11 @@ namespace Joueur.cs.Games.Saloon
             stopwatch.Start();
 
             Spawn();
-            if(this.Game.CurrentTurn >= 80)
-            {
-                CauseTrouble();
-            }
-            else
-            {
-                Solver.GreedySwarmAndPlay();
-            }
+            
+            Solver.GreedySwarmAndPlay();
+            CauseTrouble();
+            SharpshooterAttack();
+            
             Spawn();
             this.Player.Cowboys.ForEach(c => Solver.BeSafe(c));
 
@@ -215,21 +212,44 @@ namespace Joueur.cs.Games.Saloon
         void CauseTrouble()
         {
             var cowboys = this.Player.Cowboys.Where(c => (!c.IsDead && !c.IsDrunk && c.CanMove && c.TurnsBusy == 0) && (c.Job == "Brawler")).ToList();
-  
-            var targets = AI._OtherPlayer.Cowboys.Select(t => t.ToPoint()).ToHashSet();
-            
+            var targets = AI._OtherPlayer.Cowboys.Select(t => t.ToPoint());
             if(cowboys.Count() == 0 || targets.Count() == 0)
             {
                 return;
             }
-            
             foreach(var brawler in cowboys)
             {
                 var path = Solver.PathSafely(new [] { brawler.ToPoint() }, targets);
-                
                 if(path.Count() > 2)
                 {
                     brawler.Move(path.ElementAt(1));  
+                }
+            }
+        }
+        
+        void SharpshooterAttack()
+        {
+            var cowboys = this.Player.Cowboys.Where(c => (!c.IsDead && !c.IsDrunk && c.CanMove && c.TurnsBusy == 0) && (c.Job == "Sharpshooter")).ToList();
+            var targets = AI._OtherPlayer.Cowboys.Select(t => t.ToPoint());
+            var targetsNearPianos = targets.Where(t => Solver.Neighboors(t).Select(n => n.ToTile()).Any(n => n.Furnishing != null && n.Furnishing.IsPiano));
+
+            if(cowboys.Count() == 0 || !targetsNearPianos.Any())
+            {
+                return;
+            }
+
+            foreach(var sharpshooter in cowboys)
+            {
+                var path = Solver.PathSafely(new [] { sharpshooter.ToPoint() }, targetsNearPianos);
+
+                if (path.Count() > 2)
+                {
+                    sharpshooter.Move(path.ElementAt(1));
+                }
+                
+                if (sharpshooter.Focus > 0 && path.Count() == 2)
+                {
+                    sharpshooter.Act(path.Last());
                 }
             }
         }
