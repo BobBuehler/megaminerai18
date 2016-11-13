@@ -99,46 +99,20 @@ namespace Joueur.cs.Games.Saloon
             stopwatch.Start();
 
             Spawn();
-            Solver.GreedySwarmAndPlay();
+            if(this.Game.CurrentTurn >= 80)
+            {
+                CauseTrouble();
+            }
+            else
+            {
+                Solver.GreedySwarmAndPlay();
+            }
             Spawn();
             this.Player.Cowboys.ForEach(c => Solver.BeSafe(c));
 
             Console.WriteLine("Turn #{0} in {1}ms", this.Game.CurrentTurn, stopwatch.ElapsedMilliseconds);
 
             return true;
-        }
-
-        void PlayPianos()
-        {
-            while (true)
-            {
-                var pianos = this.Game.Furnishings.Where(f => f.IsPiano && !f.IsDestroyed && !f.IsPlaying).Select(t => t.ToPoint()).ToHashSet();
-                var cowboys = this.Player.Cowboys.Where(c => !c.IsDead && !c.IsDrunk && c.CanMove && c.TurnsBusy == 0).Select(c => c.ToPoint());
-
-                if (pianos.Count == 0 || cowboys.Count() == 0)
-                {
-                    break;
-                }
-
-                var path = Solver.PathSafely(cowboys, pianos).ToList();
-                if (path.Count == 0)
-                {
-                    Console.WriteLine("Nope");
-                    break;
-                }
-
-                var cowboy = path[0].Cowboy;
-                if (path.Count > 2)
-                {
-                    Console.WriteLine("Move [{0}]", String.Join(",", path.Select(t => t.Stringify()).ToArray()));
-                    cowboy.Move(path[1]);
-                }
-                if (path.Count <= 3)
-                {
-                    Console.WriteLine("Play [{0}]", String.Join(",", path.Select(t => t.Stringify()).ToArray()));
-                    cowboy.Play(path.Last().Furnishing);
-                }
-            }
         }
 
         void Spawn()
@@ -158,7 +132,108 @@ namespace Joueur.cs.Games.Saloon
                 }
             }
         }
+        
+        void BartenderMadness()
+        {
+            var youngGun = this.Player.YoungGun;
+            var spawnTile = youngGun.CallInTile;
+            var spawnPoint = spawnTile.ToPoint();
+            var nextSpawnPoint = Solver.AutoStates(3).Last().OurCallIn;
+            var cowboys = this.Player.Cowboys.Where(c => !c.IsDead);
+            var bartenders = cowboys.Where(c => c.Job == "Bartender");
+            var moved = false;
+            
+            if (bartenders.Count() == 0)
+            {
+                youngGun.CallIn("Bartender");
+            }
+            else if (bartenders.Count() == 1)
+            {
+                var bartender = bartenders.First();
+                
+                Console.WriteLine("Throw Bottle");
+                if (nextSpawnPoint.y == 1 && nextSpawnPoint.x != 20)
+                {
+                    Console.WriteLine("South");
+                    bartender.Act(bartender.Tile.TileSouth, "North");
+                }
+                else if (nextSpawnPoint.x == 20 && nextSpawnPoint.y != 10)
+                {
+                    Console.WriteLine("West");
+                    bartender.Act(bartender.Tile.TileWest, "East");
+                }
+                else if (nextSpawnPoint.y == 10 && nextSpawnPoint.x != 1)
+                {
+                    Console.WriteLine("North");
+                    bartender.Act(bartender.Tile.TileNorth, "South");
+                } else
+                {
+                    Console.WriteLine("East");
+                    bartender.Act(bartender.Tile.TileEast, "West");
+                }
+                
+                Console.WriteLine("Move");
+                if ( !bartender.ToPoint().Equals(spawnPoint) && Solver.IsWalkable(spawnPoint) )
+                {
+                    bartender.Move(spawnPoint.ToTile());
+                    moved = true;
+                }
+                
+                Console.WriteLine("Spawn");
+                if ( moved )
+                {
+                    if (!Solver.IsWalkable(nextSpawnPoint))
+                    {
+                        Console.WriteLine("Spawn Brawler");
+                        youngGun.CallIn("Brawler");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Spawn Move Bartender");
+                        youngGun.CallIn("Bartender");
+                    }
+                }
+                else
+                {
+                    // Not Moving
+                    if (!Solver.IsWalkable(nextSpawnPoint) && !spawnPoint.Equals(nextSpawnPoint))
+                    {
+                        Console.WriteLine("Spawn Sharpshooter");
+                        youngGun.CallIn("Sharpshooter");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Spawn NoMove Bartender");
+                        youngGun.CallIn("Bartender");
+                    }
+                }
+                Console.WriteLine("End Bar Fest");
+            }
+        }
 
+
+        void CauseTrouble()
+        {
+            var cowboys = this.Player.Cowboys.Where(c => (!c.IsDead && !c.IsDrunk && c.CanMove && c.TurnsBusy == 0) && (c.Job == "Brawler")).ToList();
+  
+            var targets = AI._OtherPlayer.Cowboys.Select(t => t.ToPoint()).ToHashSet();
+            
+            if(cowboys.Count() == 0 || targets.Count() == 0)
+            {
+                return;
+            }
+            
+            foreach(var brawler in cowboys)
+            {
+                var path = Solver.PathSafely(new [] { brawler.ToPoint() }, targets);
+                
+                if(path.Count() > 2)
+                {
+                    brawler.Move(path.ElementAt(1));  
+                }
+            }
+        }
+        
         #endregion
     }
 }
