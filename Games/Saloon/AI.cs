@@ -101,9 +101,7 @@ namespace Joueur.cs.Games.Saloon
             
             AI._IsAPlayer = new HashSet<Point>();
 
-
             Spawn();
-            
             Solver.GreedySwarmAndPlay();
             CauseTrouble();
             SharpshooterAttack();
@@ -165,7 +163,7 @@ namespace Joueur.cs.Games.Saloon
         
         void GreedyBartenders()
         {
-            var bartenders = this.Player.Cowboys.Where(c => c.CanMove && !c.IsDead && !c.IsDrunk && c.TurnsBusy == 0 && c.Job == "Bartender");
+            var bartenders = this.Player.Cowboys.Where(c => !c.IsDead && !c.IsDrunk && c.TurnsBusy == 0 && c.Job == "Bartender");
             var opponentCowboys = this.Opponent.Cowboys.Where(c => !c.IsDead).Select(c => c.ToPoint()).ToHashSet();
             foreach(var bartender in bartenders)
             {
@@ -181,7 +179,7 @@ namespace Joueur.cs.Games.Saloon
                 Func<Point, Point> nextPoint = p => Solver.NextPoint(p, direction);
                 var stepPoint = nextPoint(startPoint);
                 
-                while(stepPoint.ManhattanDistance(startPoint) <= 2)
+                while(stepPoint.ManhattanDistance(startPoint) <= 7 && !startPoint.ToTile().IsBalcony)
                 {
                     if (opponentCowboys.Contains(stepPoint))
                     {
