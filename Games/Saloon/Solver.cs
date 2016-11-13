@@ -24,12 +24,15 @@ static class Solver
                 break;
             }
 
-            var paths = cowboys.ToDictionary(c => c, c => PathSafely(new[] { c }, pianos)).Where(kvp => kvp.Value.Count() > 0);
+            var paths = cowboys.ToDictionary(c => c, c => PathSafely(new[] { c }, pianos, p => movingCowboys.Contains(p), p => assignedGoals.Contains(p))).Where(kvp => kvp.Value.Count() > 0);
             if (paths.Any())
             {
                 var path = paths.MinByValue(kvp => Math.Max((kvp.Value.Count() - 2) * 2, kvp.Key.ToTile().Cowboy.TurnsBusy)).Value.ToList();
                 var cowboy = path.First().Cowboy;
-                MoveAndPlay(path);
+                if (!CornerCase(path))
+                {
+                    MoveAndPlay(path);
+                }
                 movingCowboys.Add(cowboy.ToPoint());
                 assignedGoals.Add(path[path.Count - 2].ToPoint());
                 assignedPianos.Add(path[path.Count - 1].ToPoint());
@@ -39,6 +42,33 @@ static class Solver
                 break;
             }
         }
+    }
+
+    public static bool CornerCase(List<Tile> playPath)
+    {
+        if (playPath.Count == 2 && playPath[0].HasHazard)
+        {
+            var cowboy = playPath[0].Cowboy;
+            var piano = playPath[1].Furnishing;
+            var autoStates = AutoStates(3).ToList();
+            var newPositions = Neighboors(piano.ToPoint())
+                .Where(n => n.ManhattanDistance(cowboy.ToPoint()) == 2)
+                .Where(n => !n.ToTile().HasHazard && IsWalkable(n));
+            if (!newPositions.Any())
+            {
+                return false;
+            }
+            var newPath = PathSafely(new[] { cowboy.ToPoint() }, newPositions);
+            if (newPath.Count() == 2)
+            {
+                Console.WriteLine("YEP");
+                Console.WriteLine("Corner Case: {0} -> {1}", newPath.ElementAt(0).Stringify(), newPath.ElementAt(1).Stringify());
+                cowboy.Play(piano);
+                cowboy.Move(newPath.ElementAt(1));
+                return true;
+            }
+        }
+        return false;
     }
 
     public static void MoveAndPlay(IEnumerable<Tile> path)
@@ -144,14 +174,19 @@ static class Solver
         var goalSet = goals.ToHashSet();
         Func<Point, int, bool> goodNeighbor = (p, turn) =>
         {
-            if (goalSet.Contains(p))
+            var isGoal = goalSet.Contains(p);
+            if (!IsWalkable(p) && isGoal)
             {
                 return true;
             }
             var isSafe = IsSafe(p, autoStates[turn]) && IsSafe(p, autoStates[turn + 1]);
-            var isFuture = turn >= AI._Game.CurrentTurn + 2;
             if (isSafe)
             {
+                if (goalSet.Contains(p))
+                {
+                    return true;
+                }
+                var isFuture = turn >= AI._Game.CurrentTurn + 2;
                 if (isFuture)
                 {
                     return (IsWalkable(p) || futureEmpty(p)) && !futureFull(p);
@@ -212,7 +247,7 @@ static class Solver
         {
             return false;
         }
-        if (!state.IsOurTurn && point.Equals(state.TheirYoungGun))
+        if (!state.IsOurTurn && point.Equals(state.TheirCallIn))
         {
             return false;
         }
