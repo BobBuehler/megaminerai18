@@ -181,7 +181,7 @@ namespace Joueur.cs.Games.Saloon
         {
             var bartenders = this.Player.Cowboys.Where(c => !c.IsDead && !c.IsDrunk && c.CanMove && !AI._IsAPlayer.Contains(c.ToPoint()) && c.Job == "Bartender");
             var shootingSpots = this.Opponent.Cowboys
-                                    .Where(c => !c.IsDead)
+                                    .Where(c => !c.IsDead && !c.IsDrunk)
                                     .SelectMany(c => Solver.BottleLaunchExpansion(c.ToPoint(), throwLength))
                                     .Where(p => !p.ToTile().HasHazard)
                                     .ToHashSet();
@@ -203,7 +203,8 @@ namespace Joueur.cs.Games.Saloon
         
         void GreedyBartenders(int throwLength)
         {
-            var bartenders = this.Player.Cowboys.Where(c => !c.IsDead && !c.IsDrunk && c.TurnsBusy == 0 && !AI._IsAPlayer.Contains(c.ToPoint()) && c.Job == "Bartender");
+            Func<Point, bool> allowedToAttack = p => !AI._IsAPlayer.Contains(p) || !Solver.AnyInRange(p, 2, Solver.Pianos());
+            var bartenders = this.Player.Cowboys.Where(c => !c.IsDead && !c.IsDrunk && c.TurnsBusy == 0 && allowedToAttack(c.ToPoint()) && c.Job == "Bartender");
             var opponentCowboys = this.Opponent.Cowboys.Where(c => !c.IsDead).ToDictionary(c => c.ToPoint(), c => c );
             foreach(var bartender in bartenders)
             {
@@ -221,7 +222,7 @@ namespace Joueur.cs.Games.Saloon
                 Func<Point, Point> nextPoint = p => Solver.NextPoint(p, direction);
                 var stepPoint = nextPoint(startPoint);
                 
-                while(stepPoint.ManhattanDistance(startPoint) <= throwLength && !startPoint.ToTile().IsBalcony)
+                while(stepPoint.ManhattanDistance(startPoint) <= throwLength && !stepPoint.ToTile().IsBalcony)
                 {
                     if (opponentCowboys.ContainsKey(stepPoint))
                     {
@@ -235,15 +236,16 @@ namespace Joueur.cs.Games.Saloon
                     stepPoint = nextPoint(stepPoint);
                 }
             }
-            
-            var filteredActions = throwAction
-                                    .OrderBy(a => a.Item1.ManhattanDistance(startPoint))
-                                    .OrderBy(a => opponentCowboys.ContainsKey(a.Item1) ? !opponentCowboys[a.Item1].IsDrunk : true )
-                                    .OrderBy(a => opponentCowboys.ContainsKey(a.Item1) ? opponentCowboys[a.Item1].TurnsBusy != 1 : true );
 
-            if (filteredActions.Any())
+            if (throwAction.Any())
             {
-                var action = filteredActions.ElementAt(0);
+                var filteredActions = throwAction
+                    .OrderBy(a => Solver.IsNearPiano(a.Item1))
+                    .ThenBy(a => a.Item1.ManhattanDistance(startPoint) >= 3)
+                    .ThenBy(a => opponentCowboys[a.Item1].IsDrunk)
+                    .ThenBy(a => a.Item1.ManhattanDistance(startPoint));
+
+                var action = filteredActions.First();
                 bartender.Act(action.Item2, action.Item3);
             }
         }

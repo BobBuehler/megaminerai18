@@ -531,4 +531,25 @@ static class Solver
             }
         }
     }
+
+    public static bool IsPiano(Point point)
+    {
+        var tile = point.ToTile();
+        return tile != null && tile.Furnishing != null && tile.Furnishing.IsPiano;
+    }
+
+    public static bool IsNearPiano(Point point)
+    {
+        return Neighboors(point).Any(n => IsPiano(n));
+    }
+
+    public static bool AnyInRange(Point point, int range, IEnumerable<Point> targets)
+    {
+        return targets.Any(t => point.IsInRange(range, t));
+    }
+
+    public static IEnumerable<Point> Pianos()
+    {
+        return AI._Game.Furnishings.Select(f => f.ToPoint()).Where(p => IsPiano(p));
+    }
 }
