@@ -87,6 +87,7 @@ static class Solver
             var safeTile = walkableAndSafe.First().ToTile();
             Console.WriteLine("Be safe: [{0},{1}]", cowboy.Tile.Stringify(), safeTile.Stringify());
             cowboy.Move(safeTile);
+            cowboy.LogScared();
         }
     }
 
