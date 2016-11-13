@@ -175,8 +175,8 @@ namespace Joueur.cs.Games.Saloon
             var bartenders = this.Player.Cowboys.Where(c => !c.IsDead && !c.IsDrunk && c.CanMove && c.Job == "Bartender");
             foreach (var bartender in bartenders)
             {
-                var opponentCowboys = this.Opponent.Cowboys.Where(c => !c.IsDead).Select(c => c.ToPoint()).ToHashSet();
-                var shootingSpots = opponentCowboys.SelectMany(c => Solver.CardinalExpansion(c, throwLength)).ToHashSet();
+                var opponentCowboys = this.Opponent.Cowboys.Where(c => !c.IsDead).Select(c => c.ToPoint());
+                var shootingSpots = opponentCowboys.SelectMany(c => Solver.BottleLaunchExpansion(c, throwLength)).ToHashSet();
                 
                 if(shootingSpots.Count() == 0)
                 {
