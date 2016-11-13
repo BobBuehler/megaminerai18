@@ -319,6 +319,32 @@ static class Solver
             return "South";
         }
     }
+    
+    public static string RelDirection(Point origin, Point target)
+    {
+        if (origin.x == target.x)
+        {
+            if (origin.y > target.y)
+            {
+                return "North";
+            }
+            else
+            {
+                return "South";
+            }
+        }
+        else
+        {
+            if (origin.x < target.x)
+            {
+                return "East";
+            }
+            else
+            {
+                return "West";
+            }
+        }
+    }
 
     public static Dictionary<int, HashSet<Point>> BottleStates()
     {
@@ -473,6 +499,24 @@ static class Solver
             });
 
         return nextState;
+    }
+    
+    public static IEnumerable<IEnumerable<Point>> WalkableExpansion(Point focus, int maxLength)
+    {
+        foreach (var direction in new string[] {"North", "East", "South", "West"})
+        {
+            var counter = 0;
+            var nextPoint = NextPoint(focus, direction);
+            List<Point> cardinalTrail = new List<Point>();
+            while (counter < maxLength && IsWalkable(nextPoint) && !nextPoint.ToTile().IsBalcony)
+            {
+                cardinalTrail.Add(nextPoint);
+                
+                counter++;
+                nextPoint = NextPoint(nextPoint, direction);
+            }
+            yield return cardinalTrail;
+        }
     }
     
     public static IEnumerable<Point> BottleLaunchExpansion(Point focus, int maxLength)
